@@ -128,34 +128,38 @@ function apnscp_ConfigOptions()
         'FTP Enabled' => [
             'Type'        => 'yesno',
             'Description' => 'Tick to enable',
+            'Default'     => 'checked',
         ],
 
         'IPv4' => [
             'Type'    => 'radio',
             'Options' => 'unique,shared',
+            'Default' => 'shared',
         ],
 
         'IPv6' => [
             'Type'    => 'radio',
             'Options' => 'unique,shared,disabled',
+            'Default' => 'disabled',
         ],
 
         'Mail Enabled' => [
             'Type'        => 'yesno',
             'Description' => 'Enable the mail service',
+            'Default'     => 'checked',
         ],
 
         'MySQL DB Limit' => [
             'Type'        => 'text',
             'Size'        => '10',
-            'Default'     => '',
+            'Default'     => '-1',
             'Description' => '[-1, 0 => 999]',
         ],
 
         'PgSQL DB Limit' => [
             'Type'        => 'text',
             'Size'        => '10',
-            'Default'     => '',
+            'Default'     => '-1',
             'Description' => '[-1, 0 => 999]',
         ],
 
@@ -167,7 +171,8 @@ function apnscp_ConfigOptions()
         ],
 
         'Mail filtering Enabled' => [
-            'Type' => 'yesno',
+            'Type'    => 'yesno',
+            'Default' => 'checked',
         ],
 
         'Mail Filtering Provider' => [
@@ -176,22 +181,24 @@ function apnscp_ConfigOptions()
                 'spamassassin' => 'Spam Assassin',
                 'rspamd'       => 'Rspamd',
             ],
-            'Default'     => 'spamassassin',
+            'Default'     => 'rspamd',
             'Description' => 'Inbound spam filter',
         ],
 
         'SSH Enabled' => [
-            'Type' => 'yesno',
+            'Type'    => 'yesno',
+            'Default' => 'checked',
         ],
 
         'Enable SSL Service' => [
-            'Type' => 'yesno',
+            'Type'    => 'yesno',
+            'Default' => 'checked',
         ],
 
         'Limit Secondary Users' => [
             'Type'        => 'text',
             'Size'        => '10',
-            'Default'     => '',
+            'Default'     => '0',
             'Description' => '[-1, 0 => 4096]',
         ],
     ];
@@ -292,7 +299,7 @@ function apnscp_CreateAccount(array $params)
 // Rampart
 //    $opts['rampart.enabled']   = '1'; // [0,1] Delegate brute-force whitelisting
 //    $opts['rampart.max']       = $params['configoption27'] ?: 100; // [-1, 0 => 4096] Maximum number of IP address whitelists.
-    $opts['rampart.whitelist'] = [$_SERVER['REMOTE_ADDR']]; // IPv4 | IPv6 IPv4 + IPv6 addresses
+    $opts['rampart.whitelist'] = [$params['model']->client->ip]; // IPv4 | IPv6 IPv4 + IPv6 addresses
 
 //Site Info
     $opts['siteinfo.enabled']    = '1'; // [0,1] Core account attributes

@@ -1,13 +1,15 @@
-# apnscp Provisioning Module for WHMCS #
+# apnscp Provisioning Module for WHMCS#
 By Troy Siedsma (Lithium Hosting)
 
 ## Configuring
 - Create Plans in apnscp
 - Install server module in WHMCS
 - Create a server or multiple apnscp servers under products -> servers
+  - Define the hostname, password(api key), check the box for secure and make sure the port is 2083 
 - Create a new Product in WHMCS, use apnscp as the module
-- Under module config, choose your plan and add / update values as needed
+- Under module config, enter your plan and add / update values as needed
 - Create a new hosting account
+- Profit!
 
 ## Supported Features
 - Creating
