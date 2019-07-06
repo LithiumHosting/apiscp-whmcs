@@ -1,4 +1,4 @@
-# apnscp Provisioning Module for WHMCS#
+# apnscp Provisioning Module for WHMCS #
 By Troy Siedsma (Lithium Hosting)
 
 ## Configuring
