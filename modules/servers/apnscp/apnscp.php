@@ -7,12 +7,15 @@
  * @license     see included LICENSE file
  */
 
+use WHMCS\Database\Capsule as DB;
+
 if (! defined("WHMCS"))
 {
     die("This file cannot be accessed directly");
 }
 
 require_once('lib/Connector.php');
+require_once('lib/Helper.php');
 
 /**
  * Define module related meta data.
@@ -32,7 +35,7 @@ function apnscp_MetaData()
         'RequiresServer'           => true, // Set true if module requires a server to work
         'DefaultNonSSLPort'        => '2082', // Default Non-SSL Connection Port
         'DefaultSSLPort'           => '2083', // Default SSL Connection Port
-        'ServiceSingleSignOnLabel' => 'Login to Panel as User',
+        'ServiceSingleSignOnLabel' => 'Login to Panel',
         'AdminSingleSignOnLabel'   => 'Login to Panel as Admin',
     );
 }
@@ -62,12 +65,14 @@ function apnscp_MetaData()
  */
 function apnscp_ConfigOptions()
 {
+    $plans = apnscp_getPlans();
+
     return [
         'apnscp Plan' => [
-            'Type'        => 'text',
-            'Size'        => '10',
+            'Type'        => 'dropdown',
+            'Options'     => $plans,
             'Default'     => 'basic',
-            'Description' => 'Enter a plan name as configured in apnscp (case sensitive)',
+            'Description' => 'Choose a plan (auto populated)',
         ],
 
         'Addon Domains' => [
@@ -139,7 +144,7 @@ function apnscp_ConfigOptions()
 
         'IPv6' => [
             'Type'    => 'radio',
-            'Options' => 'unique,shared,disabled',
+            'Options' => 'disabled',
             'Default' => 'disabled',
         ],
 
@@ -225,111 +230,19 @@ function apnscp_CreateAccount(array $params)
     // Setup Server Params
     $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey = $params['serverpassword'];
-    $site_domain   = $params['domain'];
-    $site_admin    = $params['username'];
-    $site_password = $params['password'];
 
-    // Setup Options Array
-    $opts = [];
+    $opts = Helper::generateOptions($params);
 
-    // Addon Domains
-    $opts['aliases.enabled'] = (bool) ((int) $params['configoption2'] > 0);
-    $opts['aliases.max']     = (int) $params['configoption2']; // Actual Number of addon domains
+    $cliCommand = Helper::generateCommand($opts);
 
-    // Account Password
-    $opts['auth.tpasswd'] = $site_password; // Plain Text Password for account
-
-    //Bandwidth
-    $opts['bandwidth.threshold'] = (int) $params['configoption3'] ?: 10000;
-    $opts['bandwidth.units']     = 'GB'; //B,KB,MB,GB,TB
-//    $opts['bandwidth.rollover']  = ''; // Day of month that BW resets (defaults to today)
-
-//billing Account Linking
-//    $opts['billing.invoice']        = 'WHMCS-Client-' . $params['userid']; // Invoice id to link to customer
-    $opts['billing.parent_invoice'] = 'WHMCS-Client-' . $params['userid']; // Invoice id to link to customer
-
-//cgroup Resource Enforcement
-    $opts['cgroup.memory']    = $params['configoption4'] ?: 256;//'256'; // Limit memory usage of account in MB
-    $opts['cgroup.cpu']       = $params['configoption5'] ?: 2000; // Not sure ...
-    $opts['cgroup.cpuweight'] = $params['configoption6'] ?: 1024; // Allocate added weight to process tasks
-    $opts['cgroup.proclimit'] = $params['configoption7'] ?: null; // [null, 0-4096] Limit account to # processes
-
-//Disk Quota
-    $opts['diskquota.quota']  = $params['configoption8'] ?: 4000; // [null,0-∞] Account storage quota
-    $opts['diskquota.units']  = 'GB'; //[B,KB,MB,GB,TB] Supplied value has specified unit
-    $opts['diskquota.fquota'] = $params['configoption9'] ?: null; // [null,0-∞] Account inode quota
-
-// DNS Module
-//    $opts['dns.enabled']  = '1'; // 0.1
-//    $opts['dns.provider'] = $params['configoption13'] ?: 'builtin'; //  [aws,builtin,cloudflare,digitalocean,linode,null,vultr] Assign DNS handler for account
-//    $opts['dns.key']      = $params['configoption14'] ?: null; // <string> DNS provider key
-
-//FTP Module
-    $opts['ftp.enabled'] = $params['configoption10'] ? '1' : '0';
-//    $opts['ftp.ftpserver'] = 'ftp.'; // FTP Prefix
-
-//IP Stuffs
-    $opts['ipinfo.enabled']   = '1'; // [0,1] Assign account unique IPv4 address from pool
-    $opts['ipinfo.namebased'] = $params['configoption11'] === 'shared' ? '1' : '0'; // [0,1] Site uses shared IP address (unique otherwise, see ipaddrs)
-
-//IPv6 Stuffs
-//    $opts['ipinfo6.enabled']   = $params['configoption12'] === 'disabled' ? '0' : '1'; // [0,1] Assign account unique IPv6 address from pool
-//    $opts['ipinfo6.namebased'] = $params['configoption12'] === 'shared' ? '1' : '0'; // [0,1] Site uses shared IP address (unique otherwise, see ipaddrs)
-
-// Logging
-    $opts['logs.enabled'] = '1'; // [0,1] Record web server access
-
-// Mail
-    $opts['mail.enabled'] = $params['configoption13'] ? '1' : '0'; // [0,1] Enable mail service
-
-//MySQL
-    $opts['mysql.enabled']     = (int) $params['configoption14'] === 0 ? '0' : '1'; // [0,1] MySQL database access. Required for Web App usage.
-    $opts['mysql.dbaseadmin']  = $site_admin; // <string> Set mysql admin user
-    $opts['mysql.dbaseprefix'] = $site_admin . '_'; // <<string> Set MySQL database prefix. Must end with '_'
-    $opts['mysql.dbasenum']    = $params['configoption15'] === '-1' ? 'null' : $params['configoption15'];  // [null, 0-999] Limit total database count
-    $opts['mysql.passwd']      = $site_password; // <string> Plain-text password for mysql user.
-
-//PostgreSQL
-    $opts['pgsql.enabled']     = (int) $params['configoption16'] === 0 ? '0' : '1'; // [0,1] Enable PostgreSQL database access. Required for Discourse usage.
-    $opts['pgsql.dbaseadmin']  = $site_admin; // <string> Set pgsql admin user
-    $opts['pgsql.dbaseprefix'] = $site_admin . '_'; // <string> Set PostgreSQL database prefix. Must end with '_'
-    $opts['pgsql.dbasenum']    = $params['configoption16'] === '-1' ? 'null' : $params['configoption15']; // [null, 0-999] Limit total database count
-    $opts['pgsql.passwd']      = $site_password; // <string> Plain-text password for pgsql user.
-
-// Rampart
-//    $opts['rampart.enabled']   = '1'; // [0,1] Delegate brute-force whitelisting
-//    $opts['rampart.max']       = $params['configoption27'] ?: 100; // [-1, 0 => 4096] Maximum number of IP address whitelists.
-    $opts['rampart.whitelist'] = [$params['model']->client->ip]; // IPv4 | IPv6 IPv4 + IPv6 addresses
-
-//Site Info
-    $opts['siteinfo.enabled']    = '1'; // [0,1] Core account attributes
-    $opts['siteinfo.domain']     = $site_domain; // <string> Primary domain of the account
-    $opts['siteinfo.admin_user'] = $site_admin; // <string> Administrative user of account
-    $opts['siteinfo.email']      = $params['model']->client->email; // [email,[email1,email2...]] Contact address on account
-    $opts['siteinfo.plan']       = $params['configoption1'];
-
-// Spam Filtering
-    $opts['spamfilter.enabled']  = $params['configoption17'] ? '1' : '0'; // [0,1] Mail filtering
-    $opts['spamfilter.provider'] = $params['configoption18']; // [spamassassin,rspamd] Inbound spam filter
-
-// SSH Module
-    $opts['ssh.enabled'] = $params['configoption19'] ? '1' : '0'; // [0,1] Enable ssh service
-    $opts['ssh.jail']    = '1'; // [0,1] Jail all SSH sessions to account
-
-//SSL
-    $opts['ssl.enabled'] = $params['configoption20'] ? '1' : '0'; // [0,1] Enable ssl service
-
-// Users
-    $opts['users.enabled'] = (int) $params['configoption21'] === 0 ? '0' : '1'; // [0,1] Enable users service
-    $opts['users.max']     = $params['configoption21'] === '-1' ? 'null' : $params['configoption21']; // [null, 0-4096] Limit up to # secondary users
-
+    logModuleCall('apnscp', __FUNCTION__, ['CommandString' => $cliCommand], '', '');
 
     try
     {
         $client  = new Connector($apnscp_apikey, $apnscp_apiep);
         $request = $client->request();
 
-        $request->admin_add_site($site_domain, $site_admin, $opts);
+        $request->admin_add_site($params['domain'], $params['username'], $opts);
     }
     catch (Exception $e)
     {
@@ -525,6 +438,58 @@ function apnscp_ChangePassword(array $params)
 }
 
 /**
+ * Upgrade or downgrade an instance of a product/service.
+ *
+ * Called to apply any change in product assignment or parameters. It
+ * is called to provision upgrade or downgrade orders, as well as being
+ * able to be invoked manually by an admin user.
+ *
+ * This same function is called for upgrades and downgrades of both
+ * products and configurable options.
+ *
+ * @param array $params common module parameters
+ *
+ * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
+ *
+ * @return string "success" or an error message
+ */
+function apnscp_ChangePackage(array $params)
+{
+    // Setup Server Params
+    $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey = $params['serverpassword'];
+
+    $opts = Helper::generateOptions($params);
+
+    $cliCommand = Helper::generateCommand($opts);
+
+    logModuleCall('apnscp', __FUNCTION__, ['CommandString' => $cliCommand], '', '');
+
+    try
+    {
+        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
+        $request = $client->request();
+
+        $request->admin_edit_site($params['domain'], $opts);
+    }
+    catch (Exception $e)
+    {
+        // Record the error in WHMCS's module log.
+        logModuleCall(
+            'apnscp',
+            __FUNCTION__,
+            ['params' => $params, 'options' => $opts],
+            $e->getMessage(),
+            $e->getTraceAsString()
+        );
+
+        return $e->getMessage();
+    }
+
+    return 'success';
+}
+
+/**
  * Perform single sign-on for a given instance of a product/service.
  *
  * Called when single sign-on is requested for an instance of a product/service.
@@ -543,6 +508,22 @@ function apnscp_ServiceSingleSignOn(array $params)
     $apnscp_apikey = $params['serverpassword'];
     $site_domain   = $params['domain'];
     $site_admin    = $params['username'];
+    $app           = App::get_req_var('app');
+    $extra         = [];
+    $allowed_apps  = [
+        'usermanage',
+        'mailboxroutes',
+        'vacation',
+        'filemanager',
+        'domainmanager',
+        'bandwidthbd',
+        'crontab',
+        'subdomains',
+        'changemysql',
+        'phpmyadmin',
+        'webapps',
+        'terminal',
+    ];
 
     try
     {
@@ -551,7 +532,20 @@ function apnscp_ServiceSingleSignOn(array $params)
 
         $esprit_id = $request->admin_hijack($site_domain, $site_admin, 'UI');
 
-        $url = $apnscp_apiep . '/apps/dashboard?esprit_id=' . $esprit_id;
+        if (! isset($app) OR ! in_array($app, $allowed_apps))
+        {
+            $app = 'dashboard';
+        }
+
+        if ($app === 'subdomains')
+        {
+            $extra['mode'] = 'add';
+        }
+
+        $extra['esprit_id'] = $esprit_id;
+        $query              = http_build_query($extra);
+
+        $url = "${apnscp_apiep}/apps/${app}?${query}";
 
         return [
             'success'    => true,
@@ -573,5 +567,49 @@ function apnscp_ServiceSingleSignOn(array $params)
             'success'  => false,
             'errorMsg' => $e->getMessage(),
         );
+    }
+}
+
+
+/**
+ * Client area output logic handling.
+ *
+ * This function is used to define module specific client area output. It should
+ * return an array consisting of a template file and optional additional
+ * template variables to make available to that template.
+ *
+ * @param array $params common module parameters
+ *
+ * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
+ *
+ * @return array
+ */
+function apnscp_ClientArea(array $params)
+{
+    return [
+        'overrideDisplayTitle'           => ucfirst($params['domain']),
+        'tabOverviewReplacementTemplate' => 'overview.tpl',
+    ];
+}
+
+function apnscp_getPlans()
+{
+    $server        = DB::table('tblservers')->where('type', 'apnscp')->first();
+    $apnscp_apiep  = ($server->secure === 'on' ? 'https' : 'http') . '://' . $server->hostname . ':' . ($server->secure === 'on' ? '2083' : '2082');
+    $apnscp_apikey = decrypt($server->password);
+
+    try
+    {
+        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
+        $request = $client->request();
+
+        $plans = $request->admin_list_plans();
+
+        return array_combine($plans, $plans);;
+    }
+    catch (Exception $e)
+    {
+        // No easy way to return an error so we'll default to the basic plan only
+        return ['basic' => 'basic (api call failed)'];
     }
 }

@@ -18,7 +18,7 @@ class Connector {
         $this->endpoint = $endpoint;
     }
 
-    public function request() :SoapClient
+    public function request(): SoapClient
     {
         $key      = $this->key;
         $endpoint = $this->endpoint;
