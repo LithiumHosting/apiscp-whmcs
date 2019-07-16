@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - Stats update cron task
 - WHMCS usage stats like cPanel module
-- Direct login links (mail, mysql, ...)  Redirect using SSO
-
+- Utilize admin_get_plan to get plan config options for filtering form params
+- Move all text to lang files (I'm lazy)
+- 
 ## [1.0.0] - 2019-07-06
 ### Added
 - Support for creating, terminating, (un)suspending, password changes and SSO
@@ -18,3 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Defaulted to using Client's last IP instead of the current IP in case it's an admin making the provisioning request and not the client.
 ### Fixed
 - Fixed module options that had incorrect defaults set
+
+## [1.0.2] - 2019-07-07
+### Changed
+- Some code cleanup and refactoring
+### Added
+- Added Command Logging to the WHMCS Module Log to help with debugging issues.
+
+## [1.0.3] - 2019-07-16
+### Changed
+- WHMCS package definition select box for plan selection via API generated List
+- Updated the Client Area template to show Quick Links to login to the Panel via different Apps
+### Added
+- Utilize admin_list_plans to get plans from one apnscp server (admins: make sure to sync plans to all servers!)
+- Direct login links (mail, mysql, ...)  Redirect using SSO
+- Implemented the Change Plan functionality
