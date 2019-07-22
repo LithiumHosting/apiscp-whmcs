@@ -1,6 +1,10 @@
 # apnscp Provisioning Module for WHMCS
 By Troy Siedsma (Lithium Hosting)
 
+## Requirements:
+apnscp must be on version 3.1  
+https://forums.apnscp.com/t/apnscp-3-1-development-thread/68/5?u=msaladna
+
 ## Configuring
 - Create Plans in apnscp
 - Install server module in WHMCS

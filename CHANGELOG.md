@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - Stats update cron task
-- WHMCS usage stats like cPanel module
+- WHMCS usage stats like cPneal module
 - Utilize admin_get_plan to get plan config options for filtering form params
 - Move all text to lang files (I'm lazy)
 - 
@@ -34,3 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Utilize admin_list_plans to get plans from one apnscp server (admins: make sure to sync plans to all servers!)
 - Direct login links (mail, mysql, ...)  Redirect using SSO
 - Implemented the Change Plan functionality
+
+## [1.0.4] - 2019-07-22
+### Removed
+- Removed hooks.php file, not used yet
