@@ -37,10 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented the Change Plan functionality
 
 ## [1.0.4] - 2019-07-22
+#### DELETED Release (skip to 1.0.5)
+
+## [1.0.5] - 2019-07-22
 ### Removed
 - Removed hooks.php file, not used yet
 
-## [1.0.5] - 2019-07-28
+## [1.0.6] - 2019-07-28
 ### Changed
 - Refactored most of the SoapApi stuff
 ### Added
