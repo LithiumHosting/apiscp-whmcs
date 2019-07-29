@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WHMCS usage stats like cPneal module
 - Utilize admin_get_plan to get plan config options for filtering form params
 - Move all text to lang files (I'm lazy)
-- 
+- Add X-Forwarded-For header with request for SSO session
+- Ensure Client IP passed with Rampart whitelist
 ## [1.0.0] - 2019-07-06
 ### Added
 - Support for creating, terminating, (un)suspending, password changes and SSO
@@ -38,3 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.4] - 2019-07-22
 ### Removed
 - Removed hooks.php file, not used yet
+
+## [1.0.5] - 2019-07-28
+### Changed
+- Refactored most of the SoapApi stuff
+### Added
+- Usage Stats

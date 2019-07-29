@@ -228,8 +228,8 @@ function apnscp_ConfigOptions()
 function apnscp_CreateAccount(array $params)
 {
     // Setup Server Params
-    $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey = $params['serverpassword'];
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey      = $params['serverpassword'];
 
     $opts = Helper::generateOptions($params);
 
@@ -239,10 +239,10 @@ function apnscp_CreateAccount(array $params)
 
     try
     {
-        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
-        $request = $client->request();
+        $adminId = \session_id();
+        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $request->admin_add_site($params['domain'], $params['username'], $opts);
+        $client->admin_add_site($params['domain'], $params['username'], $opts);
     }
     catch (Exception $e)
     {
@@ -276,16 +276,16 @@ function apnscp_CreateAccount(array $params)
  */
 function apnscp_SuspendAccount(array $params)
 {
-    $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey = $params['serverpassword'];
-    $site_domain   = $params['domain'];
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey      = $params['serverpassword'];
+    $site_domain        = $params['domain'];
 
     try
     {
-        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
-        $request = $client->request();
+        $adminId = \session_id();
+        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $request->admin_deactivate_site($site_domain);
+        $client->admin_deactivate_site($site_domain);
     }
     catch (Exception $e)
     {
@@ -319,16 +319,16 @@ function apnscp_SuspendAccount(array $params)
  */
 function apnscp_UnsuspendAccount(array $params)
 {
-    $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey = $params['serverpassword'];
-    $site_domain   = $params['domain'];
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey      = $params['serverpassword'];
+    $site_domain        = $params['domain'];
 
     try
     {
-        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
-        $request = $client->request();
+        $adminId = \session_id();
+        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $request->admin_activate_site($site_domain);
+        $client->admin_activate_site($site_domain);
     }
     catch (Exception $e)
     {
@@ -361,16 +361,16 @@ function apnscp_UnsuspendAccount(array $params)
  */
 function apnscp_TerminateAccount(array $params)
 {
-    $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey = $params['serverpassword'];
-    $site_domain   = $params['domain'];
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey      = $params['serverpassword'];
+    $site_domain        = $params['domain'];
 
     try
     {
-        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
-        $request = $client->request();
+        $adminId = \session_id();
+        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $request->admin_delete_site($site_domain);
+        $client->admin_delete_site($site_domain);
     }
     catch (Exception $e)
     {
@@ -407,18 +407,18 @@ function apnscp_TerminateAccount(array $params)
  */
 function apnscp_ChangePassword(array $params)
 {
-    $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey = $params['serverpassword'];
-    $site_domain   = $params['domain'];
-    $site_admin    = $params['username'];
-    $site_password = $params['password'];
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey      = $params['serverpassword'];
+    $site_domain        = $params['domain'];
+    $site_admin         = $params['username'];
+    $site_password      = $params['password'];
 
     try
     {
-        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
-        $request = $client->request();
+        $adminId = \session_id();
+        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $request->auth_change_password($site_password, $site_admin, $site_domain);
+        $client->auth_change_password($site_password, $site_admin, $site_domain);
     }
     catch (Exception $e)
     {
@@ -456,8 +456,8 @@ function apnscp_ChangePassword(array $params)
 function apnscp_ChangePackage(array $params)
 {
     // Setup Server Params
-    $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey = $params['serverpassword'];
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey      = $params['serverpassword'];
 
     $opts = Helper::generateOptions($params);
 
@@ -467,10 +467,10 @@ function apnscp_ChangePackage(array $params)
 
     try
     {
-        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
-        $request = $client->request();
+        $adminId = \session_id();
+        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $request->admin_edit_site($params['domain'], $opts);
+        $client->admin_edit_site($params['domain'], $opts);
     }
     catch (Exception $e)
     {
@@ -504,13 +504,13 @@ function apnscp_ChangePackage(array $params)
  */
 function apnscp_ServiceSingleSignOn(array $params)
 {
-    $apnscp_apiep  = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey = $params['serverpassword'];
-    $site_domain   = $params['domain'];
-    $site_admin    = $params['username'];
-    $app           = App::get_req_var('app');
-    $extra         = [];
-    $allowed_apps  = [
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey      = $params['serverpassword'];
+    $site_domain        = $params['domain'];
+    $site_admin         = $params['username'];
+    $app                = App::get_req_var('app');
+    $extra              = [];
+    $allowed_apps       = [
         'usermanage',
         'mailboxroutes',
         'vacation',
@@ -527,10 +527,10 @@ function apnscp_ServiceSingleSignOn(array $params)
 
     try
     {
-        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
-        $request = $client->request();
+        $adminId = \session_id();
+        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $esprit_id = $request->admin_hijack($site_domain, $site_admin, 'UI');
+        $session_id = $client->admin_hijack($site_domain, $site_admin, 'UI');
 
         if (! isset($app) OR ! in_array($app, $allowed_apps))
         {
@@ -542,10 +542,10 @@ function apnscp_ServiceSingleSignOn(array $params)
             $extra['mode'] = 'add';
         }
 
-        $extra['esprit_id'] = $esprit_id;
+        $extra['esprit_id'] = $session_id;
         $query              = http_build_query($extra);
 
-        $url = "${apnscp_apiep}/apps/${app}?${query}";
+        $url = "${apnscp_apiendpoint}/apps/${app}?${query}";
 
         return [
             'success'    => true,
@@ -594,22 +594,56 @@ function apnscp_ClientArea(array $params)
 
 function apnscp_getPlans()
 {
-    $server        = DB::table('tblservers')->where('type', 'apnscp')->first();
-    $apnscp_apiep  = ($server->secure === 'on' ? 'https' : 'http') . '://' . $server->hostname . ':' . ($server->secure === 'on' ? '2083' : '2082');
-    $apnscp_apikey = decrypt($server->password);
+    $server             = DB::table('tblservers')->where('type', 'apnscp')->first();
+    $apnscp_apiendpoint = ($server->secure === 'on' ? 'https' : 'http') . '://' . $server->hostname . ':' . ($server->secure === 'on' ? '2083' : '2082');
+    $apnscp_apikey      = decrypt($server->password);
 
     try
     {
-        $client  = new Connector($apnscp_apikey, $apnscp_apiep);
-        $request = $client->request();
+        $adminId = \session_id();
+        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $plans = $request->admin_list_plans();
+        $plans = $client->admin_list_plans();
 
-        return array_combine($plans, $plans);;
+        return array_combine($plans, $plans);
     }
     catch (Exception $e)
     {
         // No easy way to return an error so we'll default to the basic plan only
         return ['basic' => 'basic (api call failed)'];
+    }
+}
+
+function apnscp_UsageUpdate($params)
+{
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey      = $params['serverpassword'];
+    $serverid           = $params['serverid'];
+    $stats              = [];
+
+    # Run connection to retrieve usage for all domains/accounts on $serverid
+    $adminId     = \session_id();
+    $adminClient = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+    $domains     = $adminClient->admin_get_domains();
+    foreach ($domains as $domain)
+    {
+        $session_id = $adminClient->admin_hijack($domain);
+        $userClient = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $session_id);
+        $bw         = $userClient->site_get_bandwidth_usage();
+        $quota      = $userClient->site_get_account_quota();
+
+        $stats[] = ['domain' => $domain, 'bw' => $bw, 'disk' => $quota];
+    }
+
+    # Now loop through results and update DB
+    foreach ($stats AS $values)
+    {
+        update_query('tblhosting', [
+            'diskusage'  => $values['disk']['qused'] / 1024,
+            'disklimit'  => $values['disk']['qhard'] / 1024,
+            'bwusage'    => ($values['bw']['used'] / 1024) / 1024,
+            'bwlimit'    => ($values['bw']['total'] / 1024) / 1024,
+            'lastupdate' => 'now()',
+        ], ['server' => $serverid, 'domain' => $values['domain']]);
     }
 }
