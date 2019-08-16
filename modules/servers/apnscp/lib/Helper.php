@@ -99,13 +99,13 @@ class Helper {
             $opts['mysql.dbaseprefix'] = $params['username'] . '_'; // <<string> Set MySQL database prefix. Must end with '_'
             if ($params['configoption15'] !== '')
             {
-                $opts['mysql.dbasenum'] = $params['configoption15'] === '-1' ? 'null' : $params['configoption15'];  // [null, 0-999] Limit total database count
+                $opts['mysql.dbasenum'] = $params['configoption14'] === '-1' ? 'null' : $params['configoption14'];  // [null, 0-999] Limit total database count
             }
             $opts['mysql.passwd'] = $params['password']; // <string> Plain-text password for mysql user.
         }
 
 //PostgreSQL
-        if ((int) $params['configoption16'] === 0)
+        if ((int) $params['configoption15'] === 0)
         {
             $opts['pgsql.enabled'] = '0'; // [0,1] Enable PostgreSQL database access. Required for Discourse usage.
         }
@@ -116,14 +116,14 @@ class Helper {
             $opts['pgsql.dbaseprefix'] = $params['username'] . '_'; // <string> Set PostgreSQL database prefix. Must end with '_'
             if ($params['configoption16'] !== '')
             {
-                $opts['pgsql.dbasenum'] = $params['configoption16'] === '-1' ? 'null' : $params['configoption16']; // [null, 0-999] Limit total database count
+                $opts['pgsql.dbasenum'] = $params['configoption15'] === '-1' ? 'null' : $params['configoption15']; // [null, 0-999] Limit total database count
             }
             $opts['pgsql.passwd'] = $params['password']; // <string> Plain-text password for pgsql user.
         }
 
 // Rampart
 //    $opts['rampart.enabled']   = '1'; // [0,1] Delegate brute-force whitelisting
-//    $opts['rampart.max']       = $params['configoption27'] ?: 100; // [-1, 0 => 4096] Maximum number of IP address whitelists.
+//    $opts['rampart.max']       = $params['configoption16'] ?: 100; // [-1, 0 => 4096] Maximum number of IP address whitelists.
         $opts['rampart.whitelist'] = [$params['model']->client->ip]; // IPv4 | IPv6 IPv4 + IPv6 addresses
 
 // Spam Filtering

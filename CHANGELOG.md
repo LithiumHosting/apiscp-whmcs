@@ -48,3 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored most of the SoapApi stuff
 ### Added
 - Usage Stats
+
+## [1.0.7] - 2019-08-15
+### Fixed
+- Fixed module using the wrong config option
