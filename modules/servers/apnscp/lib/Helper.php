@@ -159,10 +159,10 @@ class Helper {
      *
      * @return string
      */
-    public static function generateCommand(array $opts): string
+    public static function generateCommand(array $opts, $action): string
     {
         $optArray   = [];
-        $optArray[] = 'AddDomain';
+        $optArray[] = $action;
 
         foreach ($opts as $service => $value)
         {
