@@ -233,7 +233,7 @@ function apnscp_CreateAccount(array $params)
 
     $opts = Helper::generateOptions($params);
 
-    $cliCommand = Helper::generateCommand($opts);
+    $cliCommand = Helper::generateCommand($opts, 'AddDomain');
 
     logModuleCall('apnscp', __FUNCTION__, ['CommandString' => $cliCommand], '', '');
 
@@ -459,9 +459,9 @@ function apnscp_ChangePackage(array $params)
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey      = $params['serverpassword'];
 
-    $opts = Helper::generateOptions($params);
+    $opts['siteinfo.plan'] = $params['configoption1'];
 
-    $cliCommand = Helper::generateCommand($opts);
+    $cliCommand = Helper::generateCommand($opts, 'EditDomain');
 
     logModuleCall('apnscp', __FUNCTION__, ['CommandString' => $cliCommand], '', '');
 
