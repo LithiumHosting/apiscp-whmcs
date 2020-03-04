@@ -12,7 +12,6 @@
                     <em>{$groupname}</em>
                     <h4 style="margin:0;">{$product}</h4>
                     <a href="http://{$domain}" target="_blank">www.{$domain}</a>
-                    {*<a href="#" id="domainname" data-name="newdomain" data-type="text" data-pk="{$serviceid}" data-placement="right" data-url="/billing/ajax.php" data-title="Change your hosted domain name:"><i class="fa fa-pencil"></i> {$domain}</a>*}
                 </div>
 
                 <div class="row">
@@ -212,11 +211,11 @@
                         {$LANG.domainnameservers}
                     </div>
                     <div class="col-sm-7">
-                        {if $serverdata.nameserver1}{$serverdata.nameserver1} ({$serverdata.nameserver1ip})<br/>{/if}
-                        {if $serverdata.nameserver2}{$serverdata.nameserver2} ({$serverdata.nameserver2ip})<br/>{/if}
-                        {if $serverdata.nameserver3}{$serverdata.nameserver3} ({$serverdata.nameserver3ip})<br/>{/if}
-                        {if $serverdata.nameserver4}{$serverdata.nameserver4} ({$serverdata.nameserver4ip})<br/>{/if}
-                        {if $serverdata.nameserver5}{$serverdata.nameserver5} ({$serverdata.nameserver5ip})<br/>{/if}
+                        {if $serverdata.nameserver1}{$serverdata.nameserver1}{if $serverdata.nameserver1ip} ({$serverdata.nameserver1ip}){/if}<br/>{/if}
+                        {if $serverdata.nameserver2}{$serverdata.nameserver2}{if $serverdata.nameserver2ip} ({$serverdata.nameserver2ip}){/if}<br/>{/if}
+                        {if $serverdata.nameserver3}{$serverdata.nameserver3}{if $serverdata.nameserver3ip} ({$serverdata.nameserver3ip}){/if}<br/>{/if}
+                        {if $serverdata.nameserver4}{$serverdata.nameserver4}{if $serverdata.nameserver4ip} ({$serverdata.nameserver4ip}){/if}<br/>{/if}
+                        {if $serverdata.nameserver5}{$serverdata.nameserver5}{if $serverdata.nameserver5ip} ({$serverdata.nameserver5ip}){/if}<br/>{/if}
                     </div>
                 </div>
             {/if}
@@ -503,6 +502,12 @@
 <hr>
 
 <div class="row">
+    <div class="col-sm-4">
+        <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1" class="btn btn-primary btn-block{if $systemStatus != 'Active'}disabled{/if}">
+            Login to Panel
+        </a>
+    </div>
+
     {if $packagesupgrade}
         <div class="col-sm-4">
             <a href="upgrade.php?type=package&amp;id={$id}" class="btn btn-success btn-block">

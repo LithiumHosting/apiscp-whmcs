@@ -99,6 +99,8 @@ function apnscp_CreateAccount(array $params)
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey      = $params['serverpassword'];
 
+    $domain = strtolower($params['domain']);
+
     $opts = Helper::generateOptions($params);
 
     $cliCommand = Helper::generateCommand($opts, 'AddDomain');
@@ -110,7 +112,7 @@ function apnscp_CreateAccount(array $params)
         $adminId = \session_id();
         $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $client->admin_add_site($params['domain'], $params['username'], $opts);
+        $client->admin_add_site($domain, $params['username'], $opts);
     }
     catch (Exception $e)
     {
@@ -146,7 +148,7 @@ function apnscp_SuspendAccount(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = $params['domain'];
+    $site_domain        = strtolower($params['domain']);
 
     try
     {
@@ -189,7 +191,7 @@ function apnscp_UnsuspendAccount(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = $params['domain'];
+    $site_domain        = strtolower($params['domain']);
 
     try
     {
@@ -231,14 +233,17 @@ function apnscp_TerminateAccount(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = $params['domain'];
+    $site_domain        = strtolower($params['domain']);
+
+    $opts = [];
+    $opts['force'] = 'true';
 
     try
     {
         $adminId = \session_id();
         $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $client->admin_delete_site($site_domain);
+        $client->admin_delete_site($site_domain, $opts);
     }
     catch (Exception $e)
     {
@@ -277,7 +282,7 @@ function apnscp_ChangePassword(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = $params['domain'];
+    $site_domain        = strtolower($params['domain']);
     $site_admin         = $params['username'];
     $site_password      = $params['password'];
 
@@ -327,7 +332,10 @@ function apnscp_ChangePackage(array $params)
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey      = $params['serverpassword'];
 
+    $domain = strtolower($params['domain']);
+
     $opts['siteinfo.plan'] = $params['configoption1'];
+    $extra['reset'] = 'true';
 
     $cliCommand = Helper::generateCommand($opts, 'EditDomain');
 
@@ -338,7 +346,7 @@ function apnscp_ChangePackage(array $params)
         $adminId = \session_id();
         $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $client->admin_edit_site($params['domain'], $opts);
+        $client->admin_edit_site($domain, $opts, $extra);
     }
     catch (Exception $e)
     {
@@ -374,7 +382,7 @@ function apnscp_ServiceSingleSignOn(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
     $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = $params['domain'];
+    $site_domain        = strtolower($params['domain']);
     $site_admin         = $params['username'];
     $app                = App::get_req_var('app');
     $extra              = [];

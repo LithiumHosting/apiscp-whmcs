@@ -8,7 +8,7 @@
  */
 
 class Connector extends SoapClient {
-    const WSDL_PATH      = '/apnscp.wsdl';
+    const WSDL_PATH = '/apnscp.wsdl';
     // @var string session cookie identifier
     const COOKIE_NAME = 'esprit_id';
 
@@ -27,12 +27,26 @@ class Connector extends SoapClient {
     {
         $uri                  = $api_endpoint . '/soap';
         $wsdl                 = str_replace('/soap', self::WSDL_PATH, $uri);
-        $connopts             = $ctor + array(
+
+        $ip = $ctor[1] ?: $_SERVER['REMOTE_ADDR'];
+
+        $headers = [
+            'Abort-On: error',
+            'X-Forwarded-For: ' . $ip,
+        ];
+
+        $connopts             = $ctor + [
                 'connection_timeout' => 30,
                 'location'           => $uri,
                 'uri'                => 'urn:apnscp.api.soap',
                 'trace'              => true,
-            );
+                'stream_context'     => stream_context_create([
+                    'http' => [
+                        'header' => implode("\r\n", $headers) . "\r\n",
+                    ],
+                ]),
+            ];
+
         $connopts['location'] = $uri . '?authkey=' . $api_key;
 
         return (new static($wsdl, $connopts))->setId($ctor[0] ?? \session_id());

@@ -52,3 +52,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.7] - 2019-08-15
 ### Fixed
 - Fixed module using the wrong config option
+
+## [1.0.8] - 2020-03-04
+### Added
+- Rampart Blacklist checks with automatic unbanning and whitelisting when a client views the Service Details page
+- Added "Login to Panel" to the left side nav menu on the Service Details page
+- Added support for the X-Forwarded-For header
+### Changed
+- Stripped down the provisioning module, you only need to specify the plan to provision instead of all plan options
+### Fixed
+- All domains are made lower case prior to making API calls
