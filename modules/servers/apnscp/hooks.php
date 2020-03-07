@@ -23,6 +23,11 @@ add_hook('ClientAreaPageProductDetails', 1, function ($vars) {
     $legacyClient = new WHMCS\Client($ca->getClient());
     $service      = new WHMCS\Service($vars['serviceid'], $legacyClient->getID());
 
+    if ($service->product->module != "apnscp")
+    {
+        return null;
+    }
+
     $serverParams = [
         'serverhttpprefix' => $server['secure'] === 'on' ? 'https' : 'http',
         'serverhostname'   => $server['hostname'],
