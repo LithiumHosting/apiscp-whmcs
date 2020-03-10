@@ -1,15 +1,15 @@
-# apnscp Provisioning Module for WHMCS
+# ApisCP Provisioning Module for WHMCS
 By Troy Siedsma (Lithium Hosting)
 
 ## Requirements:
 WHMCS v7.1+
-apnscp must be on version 3.1  
+ApisCP must be on version 3.1  
 https://forums.apnscp.com/t/apnscp-3-1-development-thread/68/5?u=msaladna
 
 ## Configuring
-- Create Plans in apnscp
+- Create Plans in ApisCP
 - Install server module in WHMCS
-- Create a server or multiple apnscp servers under products -> servers
+- Create a server or multiple ApisCP servers under products -> servers
   - Define the hostname, password(api key), check the box for secure and make sure the port is 2083 
 - Create a new Product in WHMCS, use apnscp as the module
 - Under module config, select your plan and add / update values as needed (blank is ok to use plan defaults)
@@ -39,7 +39,7 @@ Edit clientareaproductdetails and add the following after the last {if} before t
 - Automatically unban and whitelist a user's IP
 
 ## Summary
-The apnscp provisioning module for WHMCS allows you to integrate your billing system with your server management panel so new user accounts will be automatically provisioned, suspended and terminated as needed.  Users can change their password as well as use the Single Sign-On (SSO) feature to seamlessly transition from WHMCS to apnscp.
+The ApisCP provisioning module for WHMCS allows you to integrate your billing system with your server management panel so new user accounts will be automatically provisioned, suspended and terminated as needed.  Users can change their password as well as use the Single Sign-On (SSO) feature to seamlessly transition from WHMCS to ApisCP.
 
 ## License
 This product is licensed under the GPL v3 (see LICENSE file).  Basically, you can't call it your own or sell it.
