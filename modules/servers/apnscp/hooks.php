@@ -5,7 +5,16 @@ require_once('lib/Helper.php');
 add_hook('ClientAreaPageProductDetails', 1, function ($vars) {
 
     $server = $vars['serverdata'];
-    $ip     = WHMCS\Utility\Environment\CurrentUser::getIP();
+    
+    // WHMCS version check for $ip
+    if (version_compare(WHMCS\Config\Setting::getValue("Version"), '8', '<'))
+    {
+        $ip     = WHMCS\Utility\Environment\CurrentUser::getIP();
+    }
+    else {
+	$user = (new WHMCS\Authentication\CurrentUser())->user();
+	$ip = $user->currentIp();
+    }
 
     $knownJails = [
         'f2b-sshd'         => 'SSH (f2b-sshd)',

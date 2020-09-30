@@ -62,3 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stripped down the provisioning module, you only need to specify the plan to provision instead of all plan options
 ### Fixed
 - All domains are made lower case prior to making API calls
+
+## [1.0.9] - 2020-09-29
+### Fixed
+- Fixed missing class introduced by WHMCS 8.0 Upgrade
