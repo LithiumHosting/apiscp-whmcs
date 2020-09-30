@@ -62,3 +62,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stripped down the provisioning module, you only need to specify the plan to provision instead of all plan options
 ### Fixed
 - All domains are made lower case prior to making API calls
+
+## [1.0.9] - 2020-09-30
+### Added
+- Added support for Cancellation Hold
+### Changed
+- General code improvement and fixes
+- Disabled Usage Updates (needs a full rework)
+### FIXED
+- Updated hook code for WHMCS v8 compatability

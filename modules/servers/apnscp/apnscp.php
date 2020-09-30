@@ -70,9 +70,10 @@ function apnscp_ConfigOptions()
     return [
         'apnscp Plan' => [
             'Type'        => 'dropdown',
-            'Options'     => $plans,
             'Default'     => 'basic',
-            'Description' => 'Choose a plan (auto populated)',
+            'Description' => 'Choose a plan (auto populated)<br>Format: &lt;server&gt; - &lt;plan&gt;',
+            'Loader'      => 'apnscp_getPlans',
+            'SimpleMode'  => true,
         ],
     ];
 }
@@ -120,7 +121,7 @@ function apnscp_CreateAccount(array $params)
         logModuleCall(
             'apnscp',
             __FUNCTION__,
-            ['params' => $params, 'options' => $opts],
+            ['params' => $params, 'options' => $opts, 'CommandString' => $cliCommand],
             $e->getMessage(),
             $e->getTraceAsString()
         );
@@ -150,12 +151,14 @@ function apnscp_SuspendAccount(array $params)
     $apnscp_apikey      = $params['serverpassword'];
     $site_domain        = strtolower($params['domain']);
 
+    $opts['reason'] = $params['suspendreason'];
+
     try
     {
         $adminId = \session_id();
         $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        $client->admin_deactivate_site($site_domain);
+        $client->admin_deactivate_site($site_domain, $opts);
     }
     catch (Exception $e)
     {
@@ -235,15 +238,22 @@ function apnscp_TerminateAccount(array $params)
     $apnscp_apikey      = $params['serverpassword'];
     $site_domain        = strtolower($params['domain']);
 
-    $opts = [];
-    $opts['force'] = 'true';
-
     try
     {
         $adminId = \session_id();
         $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
+        /*
+         * To disable cancellation hold, uncomment these lines
+         */
+        $opts['force'] = 'true';
         $client->admin_delete_site($site_domain, $opts);
+############################################################################################
+        /*
+         * To enable cancellation hold, uncomment these lines
+         */
+//        $opts['reason'] = 'Customer Requested Cancellation';
+//        $client->admin_deactivate_site($site_domain, $opts);
     }
     catch (Exception $e)
     {
@@ -399,6 +409,7 @@ function apnscp_ServiceSingleSignOn(array $params)
         'phpmyadmin',
         'webapps',
         'terminal',
+        'whitelist',
     ];
 
     try
@@ -463,25 +474,34 @@ function apnscp_ServiceSingleSignOn(array $params)
 function apnscp_ClientArea(array $params)
 {
     return [
-        'overrideDisplayTitle'           => ucfirst($params['domain']),
+        'overrideDisplayTitle'           => $params['domain'],
         'tabOverviewReplacementTemplate' => 'overview.tpl',
     ];
 }
 
 function apnscp_getPlans()
 {
-    $server             = DB::table('tblservers')->where('type', 'apnscp')->first();
-    $apnscp_apiendpoint = ($server->secure === 'on' ? 'https' : 'http') . '://' . $server->hostname . ':' . ($server->secure === 'on' ? '2083' : '2082');
-    $apnscp_apikey      = decrypt($server->password);
+    $servers = DB::table('tblservers')->where('type', 'apnscp')->get();
+    $adminId = \session_id();
 
     try
     {
-        $adminId = \session_id();
-        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        foreach ($servers as $server)
+        {
+            $apnscp_apiendpoint = ($server->secure === 'on' ? 'https' : 'http') . '://' . $server->hostname . ':' . ($server->secure === 'on' ? '2083' : '2082');
+            $apnscp_apikey      = decrypt($server->password);
 
-        $plans = $client->admin_list_plans();
+            $client = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
-        return array_combine($plans, $plans);
+            $plans = $client->admin_list_plans();
+
+            foreach ($plans as $plan)
+            {
+                $return[ $plan ] = $server->name . ' - ' . $plan;
+            }
+        }
+
+        return $return;
     }
     catch (Exception $e)
     {
@@ -490,36 +510,44 @@ function apnscp_getPlans()
     }
 }
 
-function apnscp_UsageUpdate($params)
-{
-    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey      = $params['serverpassword'];
-    $serverid           = $params['serverid'];
-    $stats              = [];
 
-    # Run connection to retrieve usage for all domains/accounts on $serverid
-    $adminId     = \session_id();
-    $adminClient = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
-    $domains     = $adminClient->admin_get_domains();
-    foreach ($domains as $domain)
-    {
-        $session_id = $adminClient->admin_hijack($domain);
-        $userClient = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $session_id);
-        $bw         = $userClient->site_get_bandwidth_usage();
-        $quota      = $userClient->site_get_account_quota();
+/**
+ * This is a hot mess on servers with a large number of accounts.
+ * Disabled Usage Stats, takes way too long to run.  Every single domain requires 3 API calls to Hijack, get BW and get Disk usage
+ * Multiplied by hundreds of accounts per server and many servers, this takes too long.
+ * Enable only if absolutely necessary.  Please feel free to update and submit a PR in the repo.  This definitely needs a rework and optimization!
+ */
 
-        $stats[] = ['domain' => $domain, 'bw' => $bw, 'disk' => $quota];
-    }
-
-    # Now loop through results and update DB
-    foreach ($stats AS $values)
-    {
-        update_query('tblhosting', [
-            'diskusage'  => $values['disk']['qused'] / 1024,
-            'disklimit'  => $values['disk']['qhard'] / 1024,
-            'bwusage'    => ($values['bw']['used'] / 1024) / 1024,
-            'bwlimit'    => ($values['bw']['total'] / 1024) / 1024,
-            'lastupdate' => 'now()',
-        ], ['server' => $serverid, 'domain' => $values['domain']]);
-    }
-}
+//function apnscp_UsageUpdate($params)
+//{
+//    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+//    $apnscp_apikey      = $params['serverpassword'];
+//    $serverid           = $params['serverid'];
+//    $stats              = [];
+//
+//    # Run connection to retrieve usage for all domains/accounts on $serverid
+//    $adminId     = \session_id();
+//    $adminClient = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+//    $domains     = $adminClient->admin_get_domains();
+//    foreach ($domains as $domain)
+//    {
+//        $session_id = $adminClient->admin_hijack($domain);
+//        $userClient = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $session_id);
+//        $bw         = $userClient->site_get_bandwidth_usage();
+//        $quota      = $userClient->site_get_account_quota();
+//
+//        $stats[] = ['domain' => $domain, 'bw' => $bw, 'disk' => $quota];
+//    }
+//
+//    # Now loop through results and update DB
+//    foreach ($stats AS $values)
+//    {
+//        update_query('tblhosting', [
+//            'diskusage'  => $values['disk']['qused'] / 1024,
+//            'disklimit'  => $values['disk']['qhard'] / 1024,
+//            'bwusage'    => ($values['bw']['used'] / 1024) / 1024,
+//            'bwlimit'    => ($values['bw']['total'] / 1024) / 1024,
+//            'lastupdate' => 'now()',
+//        ], ['server' => $serverid, 'domain' => $values['domain']]);
+//    }
+//}

@@ -3,8 +3,7 @@ By Troy Siedsma (Lithium Hosting)
 
 ## Requirements:
 WHMCS v7.1+
-ApisCP must be on version 3.1  
-https://forums.apnscp.com/t/apnscp-3-1-development-thread/68/5?u=msaladna
+ApisCP must be on version 3.2.5
 
 ## Configuring
 - Create Plans in ApisCP
@@ -21,8 +20,22 @@ https://forums.apnscp.com/t/apnscp-3-1-development-thread/68/5?u=msaladna
 
 Edit clientareaproductdetails and add the following after the last {if} before the first <div>
 ```smarty
-{if $apiscp_banned}
-    {include file="$template/includes/alert.tpl" type="error" title="IP Ban Notice" msg="We found your IP Address in the Blacklist on in the Panel.  We've taken the liberty of removing the IP ban and added your IP to your accounts whitelist.<br>Your IP was detected in the following Jails:<ul>{foreach from=$apiscp_jails item=jail}<li>{$jail}</li>{/foreach}"}
+{if $apisVars['is_banned']}
+    <div class="alert alert-danger">
+        <h3>IP Ban Notice</h3>
+        We found your IP Address in the Blacklist in the Panel. <br>Your IP was detected in the following Jails:
+        <ul>
+            {foreach from=$apisVars['jails'] item=jail}
+                <li>{$jail}</li>
+            {/foreach}
+        </ul>
+        We've removed the ban on your IP but any additional suspicious activity may result in banning your IP Again.
+        {if $apisVars['rampart_enabled']}
+            <br>
+            You should also be sure to add your IP {$apisVars['ip']} to the Whitelist
+            <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=whitelist" target="_blank" title="Panel Whitelist" class="alert-link">here</a>.
+        {/if}
+    </div>
 {/if}
 ```
 
@@ -36,7 +49,27 @@ Edit clientareaproductdetails and add the following after the last {if} before t
 - Changing Plans
 - SSO from WHMCS for Client and Admin
 - SSO with custom links to different apps
-- Automatically unban and whitelist a user's IP
+- Automatically unban a user's IP
+- Cancellation Hold
+
+## Cancellation Hold
+This feature allows you to defer termination of cancelled and terminated accounts for 30 days.  
+To enable, uncomment lines 255 and 256 in apnscp.php and comment out lines 249 and 250  
+  
+Comment:
+```php
+        $opts['force'] = 'true';
+        $client->admin_delete_site($site_domain, $opts);
+```
+By commenting out that section, you are preventing account deletion.
+
+Uncomment:
+```php
+        $opts['reason'] = 'Customer Requested Cancellation';
+        $client->admin_deactivate_site($site_domain, $opts);
+```
+By uncommenting that section, you are forcing account suspension.  This means the site will effectively be suspended until the automated process purges the account from the server.  
+To enable that feature, uncomment the last action hook block in hooks.php
 
 ## Summary
 The ApisCP provisioning module for WHMCS allows you to integrate your billing system with your server management panel so new user accounts will be automatically provisioned, suspended and terminated as needed.  Users can change their password as well as use the Single Sign-On (SSO) feature to seamlessly transition from WHMCS to ApisCP.
@@ -46,4 +79,8 @@ This product is licensed under the GPL v3 (see LICENSE file).  Basically, you ca
 This is meant to be free for the benefit of the community.  Help us by improving with Pull Requests!
 
 ## Contributing
-Submit a PR and have fun!
+Submit a PR and have fun!  
+I am a developer by hobby, not profession so don't judge me and I won't judge you :P
+
+## Need Help?
+Join us in the [ApisCP Discord](https://discord.gg/5bQr3Dm) in the #whmcs channel!
