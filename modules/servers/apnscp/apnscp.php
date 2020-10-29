@@ -36,8 +36,8 @@ function apnscp_MetaData()
         'RequiresServer'           => true, // Set true if module requires a server to work
         'DefaultNonSSLPort'        => '2082', // Default Non-SSL Connection Port
         'DefaultSSLPort'           => '2083', // Default SSL Connection Port
-        'ServiceSingleSignOnLabel' => 'Login to LiPanel',
-        //        'AdminSingleSignOnLabel'                  => 'Login to LiPanel as Admin',
+        'ServiceSingleSignOnLabel' => 'Login to ApisCP',
+        //        'AdminSingleSignOnLabel'                  => 'Login to ApisCP as Admin',
         //        // The display name of the unique identifier to be displayed on the table output
         //        'ListAccountsUniqueIdentifierDisplayName' => 'Domain',
         //        // The field in the return that matches the unique identifier

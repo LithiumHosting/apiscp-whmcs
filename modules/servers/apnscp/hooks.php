@@ -86,7 +86,7 @@ add_hook('ClientAreaPrimarySidebar', 1, function ($sidebar) {
         return null;
     }
 
-    $sidebar->getChild("Service Details Actions")->addChild("Login to LiPanel", array("uri" => "clientarea.php?action=productdetails&id=" . $service->id . "&dosinglesignon=1", "label" => 'Login to LiPanel', "attributes" => array("target" => "_blank"), "disabled" => $service->status != "Active", "order" => 1));
+    $sidebar->getChild("Service Details Actions")->addChild("Login to ApisCP", array("uri" => "clientarea.php?action=productdetails&id=" . $service->id . "&dosinglesignon=1", "label" => 'Login to ApisCP', "attributes" => array("target" => "_blank"), "disabled" => $service->status != "Active", "order" => 1));
 });
 
 function apnscp_checkIP(array $params)
