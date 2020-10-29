@@ -1,5 +1,5 @@
 <?php
-require_once('lib/Connector.php');
+require_once('lib/ApisConnector.php');
 require_once('lib/Helper.php');
 
 add_hook('ClientAreaPageProductDetails', 1, function ($vars) {
@@ -100,7 +100,7 @@ function apnscp_checkIP(array $params)
     try
     {
         $adminId = \session_id();
-        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
 
         if ($client->rampart_is_banned($clientIp))
         {
@@ -137,25 +137,23 @@ function apnscp_checkIP(array $params)
 
     return false;
 }
-/**
- * This hook will automatically purge Suspended accounts in ApisCP that were suspended instead of being terminated.
- * Go read the readme before enabling this feature!
- */
 
-//add_hook('DailyCronJob', 1, function () {
-//
-//    $servers = WHMCS\Product\Server::where('type', 'apnscp')->where('active', 1)->where('disabled', 0)->get();
-//    foreach ($servers as $server)
-//    {
-//        $apnscp_apiendpoint = $server->serverhttpprefix . '://' . $server->serverhostname . ':' . $server->serverport ?: 2083;
-//        $apnscp_apikey      = decrypt($server->serverpassword);
-//
-//        $adminId = \session_id();
-//        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
-//
-//        $opts['since'] = "30 days ago";
-//        $opts['match'] = "Customer Requested Cancellation";
-//        $client->admin_delete_site(null, $opts);
-//    }
-//
-//});
+add_hook('DailyCronJob', 1, function () {
+
+    $servers = WHMCS\Product\Server::where('type', 'apnscp')->where('active', 1)->where('disabled', 0)->get();
+    foreach ($servers as $server)
+    {
+        $apnscp_apiendpoint = $server->serverhttpprefix . '://' . $server->serverhostname . ':' . $server->serverport ?: 2083;
+        $apnscp_apikey      = decrypt($server->serverpassword);
+
+        $adminId = \session_id();
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+
+        $opts['since'] = "30 days ago";
+        $opts['match'] = "Deferred Account Cancellation";
+        $opts['dry-run'];
+        $client->admin_delete_site(null, $opts);
+        logModuleCall('apnscp', 'Deferred Cancellation - ' . $server->serverhostname, str_ireplace('><', ">\n<", $client->__getLastRequest()), str_ireplace('><', ">\n<", $client->__getLastResponse()));
+    }
+
+});
