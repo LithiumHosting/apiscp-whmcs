@@ -37,11 +37,13 @@ class ApisConnector extends SoapClient {
 
         $ip = $ip ?? '127.0.0.1';
 
-        $headers = [
-            'Abort-On: error',
-            'X-Forwarded-For: ' . $ip,
-        ];
+        $headers[] = 'Abort-On: error';
 
+        if ($ip && $ip !== '127.0.0.1')
+        {
+            $headers[] = 'X-Forwarded-For: ' . $ip;
+        }
+        
         $connopts = $ctor + [
                 'connection_timeout' => 30,
                 'location'           => $uri,
@@ -56,7 +58,13 @@ class ApisConnector extends SoapClient {
 
         $connopts['location'] = $uri . '?authkey=' . $api_key;
 
-        return (new static($wsdl, $connopts))->setId($ctor[0] ?? \session_id());
+        $instance = (new static($wsdl, $connopts));
+
+        if (isset($ctor[0])) {
+            $instance->setId($ctor[0]);
+        }
+
+        return $instance;
     }
 
     /**
@@ -64,7 +72,7 @@ class ApisConnector extends SoapClient {
      *
      * @param string $name
      *
-     * @return Util_API
+     * @return ApisConnector
      */
     public function setId(string $name): self
     {
@@ -76,7 +84,10 @@ class ApisConnector extends SoapClient {
     public function __call($function_name, $arguments)
     {
         static $ctr = 0;
-        $this->__setCookie(self::COOKIE_NAME, $this->id);
+        if ($this->id)
+        {
+            $this->__setCookie(self::COOKIE_NAME, $this->id);
+        }
         $ret = parent::__call($function_name, $arguments);
         if ($ret !== null || $ctr >= 5)
         {

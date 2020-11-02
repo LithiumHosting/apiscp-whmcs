@@ -146,8 +146,7 @@ add_hook('DailyCronJob', 1, function () {
         $apnscp_apiendpoint = $server->serverhttpprefix . '://' . $server->serverhostname . ':' . $server->serverport ?: 2083;
         $apnscp_apikey      = decrypt($server->serverpassword);
 
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $opts['since'] = "30 days ago";
         $opts['match'] = "Deferred Account Cancellation";

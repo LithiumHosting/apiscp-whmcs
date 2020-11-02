@@ -113,8 +113,7 @@ function apnscp_CreateAccount(array $params)
 
     try
     {
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->admin_add_site($domain, $params['username'], $opts);
 
@@ -159,8 +158,7 @@ function apnscp_SuspendAccount(array $params)
 
     try
     {
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->admin_deactivate_site($site_domain, $opts);
 
@@ -203,8 +201,7 @@ function apnscp_UnsuspendAccount(array $params)
 
     try
     {
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->admin_activate_site($site_domain);
 
@@ -257,8 +254,7 @@ function apnscp_TerminateAccount(array $params)
 
     try
     {
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $opts['force'] = true;
         $client->admin_delete_site($site_domain, $opts);
@@ -357,8 +353,7 @@ function apnscp_ChangePassword(array $params)
 
     try
     {
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->auth_change_password($site_password, $site_admin, $site_domain);
 
@@ -405,14 +400,13 @@ function apnscp_ChangePackage(array $params)
     $domain = strtolower($params['domain']);
 
     $opts['siteinfo.plan'] = $params['configoption1'];
-    $extra['reset']        = 'true';
+    $extra['reset']        = true;
 
     $cliCommand = Helper::generateCommand($opts, 'EditDomain');
 
     try
     {
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->admin_edit_site($domain, $opts, $extra);
 
@@ -540,7 +534,6 @@ function apnscp_ClientArea(array $params)
 function apnscp_getPlans()
 {
     $servers = DB::table('tblservers')->where('type', 'apnscp')->get();
-    $adminId = \session_id();
 
     try
     {
@@ -549,7 +542,7 @@ function apnscp_getPlans()
             $apnscp_apiendpoint = ($server->secure === 'on' ? 'https' : 'http') . '://' . $server->hostname . ':' . ($server->secure === 'on' ? '2083' : '2082');
             $apnscp_apikey      = decrypt($server->password);
 
-            $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+            $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
             $plans = $client->admin_list_plans();
 
