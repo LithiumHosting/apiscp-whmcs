@@ -290,7 +290,10 @@ function apnscp_TerminateAccount(array $params)
                 "Request: " . str_ireplace('><', ">\n<", $client->__getLastRequest()) . "\n\nHeaders:" . $client->__getLastRequestHeaders(),
                 "Command Failed, retrying!\n\n" .
                 "Response: " . $client->__getLastResponse() . "\n\n" .
-                "Headers" . $client->__getLastResponseHeaders()
+                "Headers: " . $client->__getLastResponseHeaders() . "\n\n" .
+                "Exception: " . $originalEx->getMessage() . "\n\n" .
+                $originalEx->getLine() . "\n\n" .
+                $originalEx->getTraceAsString() . "\n\n"
             );
 
             return apnscp_TerminateAccount($params);
