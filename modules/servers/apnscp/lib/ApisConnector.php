@@ -98,7 +98,7 @@ class ApisConnector extends SoapClient {
         // 50 ms sleep
         usleep(50000);
         $ctr++;
-
+        file_put_contents('/tmp/trace.log', $this->__getLastResponseHeaders()  . "\n" . $this->__getLastResponse() . "\n" . $this->__getLastRequest() . "\n----------\n", FILE_APPEND);
         return $this->__call($function_name, $arguments);
     }
 }

@@ -264,7 +264,7 @@ function apnscp_TerminateAccount(array $params)
             $method,
             "Request: " . str_ireplace('><', ">\n<", $client->__getLastRequest()) . "\n\nHeaders:" . $client->__getLastRequestHeaders(),
             "Response: " . $client->__getLastResponse() . "\n\n" .
-            "Headers" . $client->__getLastResponseHeaders()
+            "Headers: " . $client->__getLastResponseHeaders()
         );
 
         $called = 0;
@@ -307,7 +307,7 @@ function apnscp_TerminateAccount(array $params)
             $originalEx->getLine() . "\n\n" .
             $originalEx->getTraceAsString() . "\n\n" .
             "Response: " . $client->__getLastResponse() . "\n\n" .
-            "Headers" . $client->__getLastResponseHeaders()
+            "Headers: " . $client->__getLastResponseHeaders()
         );
 
         if ($originalEx->getMessage() != $e->getMessage())
@@ -320,7 +320,7 @@ function apnscp_TerminateAccount(array $params)
                                                                               $e->getLine(),
                                                                               $e->getTraceAsString()]) . "\n\n" .
                 "Response: " . $client->__getLastResponse() . "\n\n" .
-                "Headers" . $client->__getLastResponseHeaders());
+                "Headers: " . $client->__getLastResponseHeaders());
         }
 
         $called     = 0;
@@ -470,8 +470,7 @@ function apnscp_ServiceSingleSignOn(array $params)
 
     try
     {
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $session_id = $client->admin_hijack($site_domain, $site_admin, 'UI');
 
