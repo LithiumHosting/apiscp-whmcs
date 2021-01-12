@@ -1,5 +1,5 @@
 <?php
-require_once('lib/Connector.php');
+require_once('lib/ApisConnector.php');
 require_once('lib/Helper.php');
 
 add_hook('ClientAreaPageProductDetails', 1, function ($vars) {
@@ -86,7 +86,7 @@ add_hook('ClientAreaPrimarySidebar', 1, function ($sidebar) {
         return null;
     }
 
-    $sidebar->getChild("Service Details Actions")->addChild("Login to LiPanel", array("uri" => "clientarea.php?action=productdetails&id=" . $service->id . "&dosinglesignon=1", "label" => 'Login to LiPanel', "attributes" => array("target" => "_blank"), "disabled" => $service->status != "Active", "order" => 1));
+    $sidebar->getChild("Service Details Actions")->addChild("Login to ApisCP", array("uri" => "clientarea.php?action=productdetails&id=" . $service->id . "&dosinglesignon=1", "label" => 'Login to ApisCP', "attributes" => array("target" => "_blank"), "disabled" => $service->status != "Active", "order" => 1));
 });
 
 function apnscp_checkIP(array $params)
@@ -99,8 +99,7 @@ function apnscp_checkIP(array $params)
 
     try
     {
-        $adminId = \session_id();
-        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         if ($client->rampart_is_banned($clientIp))
         {
@@ -123,39 +122,28 @@ function apnscp_checkIP(array $params)
     }
     catch (Exception $e)
     {
-        // Record the error in WHMCS's module log.
-        logModuleCall(
-            'apnscp',
-            __FUNCTION__,
-            $params,
-            $e->getMessage(),
-            $e->getTraceAsString()
-        );
+        // Record the error in WHMCS's activity log.
+        logActivity('ApisCP IP Ban Check Failed: ' . $e->getTraceAsString());
 
         return $e->getMessage();
     }
-
-    return false;
 }
-/**
- * This hook will automatically purge Suspended accounts in ApisCP that were suspended instead of being terminated.
- * Go read the readme before enabling this feature!
- */
 
-//add_hook('DailyCronJob', 1, function () {
-//
-//    $servers = WHMCS\Product\Server::where('type', 'apnscp')->where('active', 1)->where('disabled', 0)->get();
-//    foreach ($servers as $server)
-//    {
-//        $apnscp_apiendpoint = $server->serverhttpprefix . '://' . $server->serverhostname . ':' . $server->serverport ?: 2083;
-//        $apnscp_apikey      = decrypt($server->serverpassword);
-//
-//        $adminId = \session_id();
-//        $client  = Connector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
-//
-//        $opts['since'] = "30 days ago";
-//        $opts['match'] = "Customer Requested Cancellation";
-//        $client->admin_delete_site(null, $opts);
-//    }
-//
-//});
+add_hook('DailyCronJob', 1, function () {
+
+    $servers = WHMCS\Product\Server::where('type', 'apnscp')->where('active', 1)->where('disabled', 0)->get();
+    foreach ($servers as $server)
+    {
+        $apnscp_apiendpoint = $server->serverhttpprefix . '://' . $server->serverhostname . ':' . $server->serverport ?: 2083;
+        $apnscp_apikey      = decrypt($server->serverpassword);
+
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+
+        $opts['since'] = "30 days ago";
+        $opts['match'] = "Deferred Account Cancellation";
+        $opts['dry-run'];
+        $client->admin_delete_site(null, $opts);
+        logModuleCall('apnscp', 'Deferred Cancellation - ' . $server->serverhostname, str_ireplace('><', ">\n<", $client->__getLastRequest()), str_ireplace('><', ">\n<", $client->__getLastResponse()));
+    }
+
+});

@@ -7,7 +7,7 @@
  * @license     see included LICENSE file
  */
 
-class Connector extends SoapClient {
+class ApisConnector extends SoapClient {
     const WSDL_PATH = '/apnscp.wsdl';
     // @var string session cookie identifier
     const COOKIE_NAME = 'esprit_id';
@@ -25,17 +25,27 @@ class Connector extends SoapClient {
      */
     public static function create_client($api_key, $api_endpoint, ...$ctor): \SoapClient
     {
-        $uri                  = $api_endpoint . '/soap';
-        $wsdl                 = str_replace('/soap', self::WSDL_PATH, $uri);
+        $uri  = $api_endpoint . '/soap';
+        $wsdl = str_replace('/soap', self::WSDL_PATH, $uri);
 
-        $ip = $ctor[1] ?: $_SERVER['REMOTE_ADDR'];
+        $ip = $ctor[1] ?? $_SERVER['REMOTE_ADDR'];
 
-        $headers = [
-            'Abort-On: error',
-            'X-Forwarded-For: ' . $ip,
-        ];
+        if (isset($_SERVER['SSH_CLIENT']))
+        {
+            $ip = explode(' ', $_SERVER['SSH_CLIENT']);
+            $ip = $ip[0];
+        }
 
-        $connopts             = $ctor + [
+        $ip = $ip ?? '127.0.0.1';
+
+        $headers[] = 'Abort-On: error';
+
+        if ($ip && $ip !== '127.0.0.1')
+        {
+            $headers[] = 'X-Forwarded-For: ' . $ip;
+        }
+
+        $connopts = $ctor + [
                 'connection_timeout' => 30,
                 'location'           => $uri,
                 'uri'                => 'urn:apnscp.api.soap',
@@ -49,7 +59,14 @@ class Connector extends SoapClient {
 
         $connopts['location'] = $uri . '?authkey=' . $api_key;
 
-        return (new static($wsdl, $connopts))->setId($ctor[0] ?? \session_id());
+        $instance = (new static($wsdl, $connopts));
+
+        if (isset($ctor[0]))
+        {
+            $instance->setId($ctor[0]);
+        }
+
+        return $instance;
     }
 
     /**
@@ -57,7 +74,7 @@ class Connector extends SoapClient {
      *
      * @param string $name
      *
-     * @return Util_API
+     * @return ApisConnector
      */
     public function setId(string $name): self
     {
@@ -69,7 +86,10 @@ class Connector extends SoapClient {
     public function __call($function_name, $arguments)
     {
         static $ctr = 0;
-        $this->__setCookie(self::COOKIE_NAME, $this->id);
+        if ($this->id)
+        {
+            $this->__setCookie(self::COOKIE_NAME, $this->id);
+        }
         $ret = parent::__call($function_name, $arguments);
         if ($ret !== null || $ctr >= 5)
         {

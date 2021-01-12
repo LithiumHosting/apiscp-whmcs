@@ -51,10 +51,12 @@ Edit clientareaproductdetails and add the following after the last {if} before t
 - SSO with custom links to different apps
 - Automatically unban a user's IP
 - Cancellation Hold
+- Statistics update
+- SiteID Population on stats update
 
 ## Cancellation Hold
 This feature allows you to defer termination of cancelled and terminated accounts for 30 days.  
-To enable, uncomment lines 255 and 256 in apnscp.php and comment out lines 249 and 250  
+To enable, uncomment lines 242 and 243 in apnscp.php and comment out lines 245 and 246  
   
 Comment:
 ```php

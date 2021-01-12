@@ -70,4 +70,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - General code improvement and fixes
 - Disabled Usage Updates (needs a full rework)
 ### FIXED
-- Updated hook code for WHMCS v8 compatability
+- Updated hook code for WHMCS v8 compatibility
+
+## 2021-01-12
+### Added
+- Added Usage Stats Updating
+- Added SiteID Population
+### Fixed
+- Fixed Admin Session issues

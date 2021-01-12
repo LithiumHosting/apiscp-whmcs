@@ -12,6 +12,7 @@
                     <em>{$groupname}</em>
                     <h4 style="margin:0;">{$product}</h4>
                     <a href="http://{$domain}" target="_blank">www.{$domain}</a>
+                    {*<a href="#" id="domainname" data-name="newdomain" data-type="text" data-pk="{$serviceid}" data-placement="right" data-url="/billing/ajax.php" data-title="Change your hosted domain name:"><i class="fa fa-pencil"></i> {$domain}</a>*}
                 </div>
 
                 <div class="row">
@@ -66,6 +67,7 @@
         {/if}
 
     </div>
+
     <div class="col-md-6">
 
         <div class="panel panel-default" id="panelUsagePanel">
@@ -138,7 +140,6 @@
 
             </div>
         </div>
-
     </div>
 </div>
 
@@ -504,7 +505,7 @@
 <div class="row">
     <div class="col-sm-4">
         <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1" class="btn btn-primary btn-block{if $systemStatus != 'Active'} disabled{/if}">
-            Login to LiPanel
+            Login to ApisCP
         </a>
     </div>
 
