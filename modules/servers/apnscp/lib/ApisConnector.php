@@ -30,7 +30,8 @@ class ApisConnector extends SoapClient {
 
         $ip = $ctor[1] ?? $_SERVER['REMOTE_ADDR'];
 
-        if (isset($_SERVER['SSH_CLIENT'])) {
+        if (isset($_SERVER['SSH_CLIENT']))
+        {
             $ip = explode(' ', $_SERVER['SSH_CLIENT']);
             $ip = $ip[0];
         }
@@ -43,7 +44,7 @@ class ApisConnector extends SoapClient {
         {
             $headers[] = 'X-Forwarded-For: ' . $ip;
         }
-        
+
         $connopts = $ctor + [
                 'connection_timeout' => 30,
                 'location'           => $uri,
@@ -60,7 +61,8 @@ class ApisConnector extends SoapClient {
 
         $instance = (new static($wsdl, $connopts));
 
-        if (isset($ctor[0])) {
+        if (isset($ctor[0]))
+        {
             $instance->setId($ctor[0]);
         }
 
@@ -98,7 +100,7 @@ class ApisConnector extends SoapClient {
         // 50 ms sleep
         usleep(50000);
         $ctr++;
-        file_put_contents('/tmp/trace.log', $this->__getLastResponseHeaders()  . "\n" . $this->__getLastResponse() . "\n" . $this->__getLastRequest() . "\n----------\n", FILE_APPEND);
+
         return $this->__call($function_name, $arguments);
     }
 }

@@ -10,8 +10,7 @@
 use WHMCS\Database\Capsule as DB;
 use WHMCS\Service\Status;
 
-if (! defined("WHMCS"))
-{
+if (! defined("WHMCS")) {
     die("This file cannot be accessed directly");
 }
 
@@ -103,7 +102,7 @@ function apnscp_CreateAccount(array $params)
 {
     // Setup Server Params
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey      = $params['serverpassword'];
+    $apnscp_apikey = $params['serverpassword'];
 
     $domain = strtolower($params['domain']);
 
@@ -111,16 +110,13 @@ function apnscp_CreateAccount(array $params)
 
     $cliCommand = Helper::generateCommand($opts, 'AddDomain');
 
-    try
-    {
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
-
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
         $client->admin_add_site($domain, $params['username'], $opts);
+        Helper::apnscpValidateCustomFields($params['pid']);
 
         logModuleCall('apnscp', 'Create', ['Request' => str_ireplace('><', ">\n<", $client->__getLastRequest()), 'CommandString' => $cliCommand], str_ireplace('><', ">\n<", $client->__getLastResponse()));
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
             'apnscp',
@@ -151,21 +147,18 @@ function apnscp_CreateAccount(array $params)
 function apnscp_SuspendAccount(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = strtolower($params['domain']);
+    $apnscp_apikey = $params['serverpassword'];
+    $site_domain = strtolower($params['domain']);
 
     $opts['reason'] = $params['suspendreason'];
 
-    try
-    {
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->admin_deactivate_site($site_domain, $opts);
 
         logModuleCall('apnscp', 'Suspend', ['Request' => str_ireplace('><', ">\n<", $client->__getLastRequest())], str_ireplace('><', ">\n<", $client->__getLastResponse()));
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
             'apnscp',
@@ -196,19 +189,16 @@ function apnscp_SuspendAccount(array $params)
 function apnscp_UnsuspendAccount(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = strtolower($params['domain']);
+    $apnscp_apikey = $params['serverpassword'];
+    $site_domain = strtolower($params['domain']);
 
-    try
-    {
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->admin_activate_site($site_domain);
 
         logModuleCall('apnscp', 'Unsuspend', ['Request' => str_ireplace('><', ">\n<", $client->__getLastRequest())], str_ireplace('><', ">\n<", $client->__getLastResponse()));
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
             'apnscp',
@@ -243,22 +233,18 @@ function apnscp_TerminateAccount(array $params)
     // end
 
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = strtolower($params['domain']);
+    $apnscp_apikey = $params['serverpassword'];
+    $site_domain = strtolower($params['domain']);
 
-    static $called, $originalEx;
-    if (is_null($called))
-    {
-        $called = 0;
-    }
-
-    try
-    {
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $opts['force'] = true;
         $client->admin_delete_site($site_domain, $opts);
 
+//        $opts['reason'] = 'Customer Requested Cancellation';
+//        $client->admin_deactivate_site($site_domain, $opts);
+
         logModuleCall(
             $module,
             $method,
@@ -267,64 +253,27 @@ function apnscp_TerminateAccount(array $params)
             "Headers: " . $client->__getLastResponseHeaders()
         );
 
-        $called = 0;
         return 'success';
-    }
-    catch (Exception $e)
-    {
-        if ($called == 0)
-        {
-            /**
-             * first call, bugfix workaround: store first ex
-             * sometimes these can be overwritten by different
-             * failure points on repeat calls
-             */
-            $originalEx = $e;
-        }
-        if ($called < 5)
-        {
-            $called++;
-            logModuleCall(
-                $module,
-                $method,
-                "Request: " . str_ireplace('><', ">\n<", $client->__getLastRequest()) . "\n\nHeaders:" . $client->__getLastRequestHeaders(),
-                "Command Failed, retrying!\n\n" .
-                "Response: " . $client->__getLastResponse() . "\n\n" .
-                "Headers: " . $client->__getLastResponseHeaders() . "\n\n" .
-                "Exception: " . $originalEx->getMessage() . "\n\n" .
-                $originalEx->getLine() . "\n\n" .
-                $originalEx->getTraceAsString() . "\n\n"
-            );
-
-            return apnscp_TerminateAccount($params);
-        }
-
+    } catch (Exception $e) {
         logModuleCall(
             $module,
             $method,
             "Request: " . str_ireplace('><', ">\n<", $client->__getLastRequest()) . "\n\nHeaders:" . $client->__getLastRequestHeaders(),
-            "Exception: " . $originalEx->getMessage() . "\n\n" .
-            $originalEx->getLine() . "\n\n" .
-            $originalEx->getTraceAsString() . "\n\n" .
+            "Exception: " . $e->getMessage() . "\n\n" .
+            $e->getLine() . "\n\n" .
+            $e->getTraceAsString() . "\n\n" .
             "Response: " . $client->__getLastResponse() . "\n\n" .
             "Headers: " . $client->__getLastResponseHeaders()
         );
 
-        if ($originalEx->getMessage() != $e->getMessage())
-        {
-            logModuleCall(
-                $module,
-                $method,
-                "Request: " . str_ireplace('><', ">\n<", $client->__getLastRequest()) . "\n\nHeaders:" . $client->__getLastRequestHeaders(),
-                "Exception: " . vsprintf("FIRST != LAST: %s \nLine %s \n%s", [$e->getMessage(),
-                                                                              $e->getLine(),
-                                                                              $e->getTraceAsString()]) . "\n\n" .
-                "Response: " . $client->__getLastResponse() . "\n\n" .
-                "Headers: " . $client->__getLastResponseHeaders());
-        }
+        if (empty($e->getMessage()) || ($e->getMessage() === 'Error Fetching http headers')) {
+            /**
+             * This is almost certainly a timeout error where the panel received and processed the termination command but didn't reply in time and SOAP threw an error
+             * If I'm wrong, I'll re-think this approach :)
+             */
 
-        $called     = 0;
-        $originalEx = '';
+            return 'success';
+        }
 
         return $e->getMessage();
     }
@@ -349,21 +298,18 @@ function apnscp_TerminateAccount(array $params)
 function apnscp_ChangePassword(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = strtolower($params['domain']);
-    $site_admin         = $params['username'];
-    $site_password      = $params['password'];
+    $apnscp_apikey = $params['serverpassword'];
+    $site_domain = strtolower($params['domain']);
+    $site_admin = $params['username'];
+    $site_password = $params['password'];
 
-    try
-    {
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->auth_change_password($site_password, $site_admin, $site_domain);
 
         logModuleCall('apnscp', 'ChangePassword', ['Request' => str_ireplace('><', ">\n<", $client->__getLastRequest())], str_ireplace('><', ">\n<", $client->__getLastResponse()));
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
             'apnscp',
@@ -398,25 +344,22 @@ function apnscp_ChangePackage(array $params)
 {
     // Setup Server Params
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey      = $params['serverpassword'];
+    $apnscp_apikey = $params['serverpassword'];
 
     $domain = strtolower($params['domain']);
 
     $opts['siteinfo.plan'] = $params['configoption1'];
-    $extra['reset']        = true;
+    $extra['reset'] = true;
 
     $cliCommand = Helper::generateCommand($opts, 'EditDomain');
 
-    try
-    {
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $client->admin_edit_site($domain, $opts, $extra);
 
         logModuleCall('apnscp', 'ChangePackage', ['Request' => str_ireplace('><', ">\n<", $client->__getLastRequest()), 'CommandString' => $cliCommand], str_ireplace('><', ">\n<", $client->__getLastResponse()));
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
             'apnscp',
@@ -447,12 +390,12 @@ function apnscp_ChangePackage(array $params)
 function apnscp_ServiceSingleSignOn(array $params)
 {
     $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
-    $apnscp_apikey      = $params['serverpassword'];
-    $site_domain        = strtolower($params['domain']);
-    $site_admin         = $params['username'];
-    $app                = App::get_req_var('app');
-    $extra              = [];
-    $allowed_apps       = [
+    $apnscp_apikey = $params['serverpassword'];
+    $site_domain = strtolower($params['domain']);
+    $site_admin = $params['username'];
+    $app = App::get_req_var('app');
+    $extra = [];
+    $allowed_apps = [
         'usermanage',
         'mailboxroutes',
         'vacation',
@@ -468,24 +411,21 @@ function apnscp_ServiceSingleSignOn(array $params)
         'whitelist',
     ];
 
-    try
-    {
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $session_id = $client->admin_hijack($site_domain, $site_admin, 'UI');
 
-        if (! isset($app) or ! in_array($app, $allowed_apps))
-        {
+        if (! isset($app) or ! in_array($app, $allowed_apps)) {
             $app = 'dashboard';
         }
 
-        if ($app === 'subdomains')
-        {
+        if ($app === 'subdomains') {
             $extra['mode'] = 'add';
         }
 
         $extra['esprit_id'] = $session_id;
-        $query              = http_build_query($extra);
+        $query = http_build_query($extra);
 
         $url = "${apnscp_apiendpoint}/apps/${app}?${query}";
 
@@ -493,9 +433,7 @@ function apnscp_ServiceSingleSignOn(array $params)
             'success'    => true,
             'redirectTo' => $url,
         ];
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
             'apnscp',
@@ -504,10 +442,10 @@ function apnscp_ServiceSingleSignOn(array $params)
             $e->getMessage() . "\n\n" . $e->getTraceAsString() . "\n\n" . str_ireplace('><', ">\n<", $client->__getLastResponse())
         );
 
-        return array(
+        return [
             'success'  => false,
             'errorMsg' => $e->getMessage(),
-        );
+        ];
     }
 }
 
@@ -537,41 +475,76 @@ function apnscp_getPlans()
 {
     $servers = DB::table('tblservers')->where('type', 'apnscp')->get();
 
-    try
-    {
-        foreach ($servers as $server)
-        {
+    try {
+        foreach ($servers as $server) {
             $apnscp_apiendpoint = ($server->secure === 'on' ? 'https' : 'http') . '://' . $server->hostname . ':' . ($server->secure === 'on' ? '2083' : '2082');
-            $apnscp_apikey      = decrypt($server->password);
+            $apnscp_apikey = decrypt($server->password);
 
             $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
             $plans = $client->admin_list_plans();
 
-            foreach ($plans as $plan)
-            {
-                $return[ $plan ] = $server->name . ' - ' . $plan;
+            foreach ($plans as $plan) {
+                $return[$plan] = $server->name . ' - ' . $plan;
             }
         }
 
         return $return;
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
         // No easy way to return an error so we'll default to the basic plan only
         return ['basic' => 'basic (api call failed)'];
     }
 }
 
+function apnscp_UsageUpdate($params)
+{
+    $apnscp_apiendpoint = $params['serverhttpprefix'] . '://' . $params['serverhostname'] . ':' . $params['serverport'];
+    $apnscp_apikey = $params['serverpassword'];
+    $serverid = $params['serverid'];
+
+    $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+    $siteInfoArr = $client->admin_collect(['siteinfo.domain']);
+    $storageArr = $client->admin_get_usage('storage');
+    $bandwidthArr = $client->admin_get_usage('bandwidth');
+
+    $products = DB::table('tblproducts')->where('type', 'hostingaccount')->where('servertype', 'apnscp')->get();
+    foreach ($products as $product) {
+        // This is less than efficient, but it works and is only a few extra queries!
+        Helper::apnscpValidateCustomFields($product->id);
+    }
+
+    foreach ($siteInfoArr as $site => $values) {
+        $service = DB::table('tblhosting')
+            ->where('server', $serverid)
+            ->where('domain', $values['domain'])
+            ->first();
+
+        if (! empty($service)) {
+            DB::table('tblhosting')
+                ->where('id', $service->id)
+                ->update([
+                    'diskusage'  => $storageArr[$site]['qused'] / 1024,
+                    'disklimit'  => $storageArr[$site]['qhard'] / 1024,
+                    'bwusage'    => ($bandwidthArr[$site]['sum'] / 1024) / 1024,
+                    'bwlimit'    => ($bandwidthArr[$site]['threshold'] / 1024) / 1024,
+                    'lastupdate' => DB::raw('now()'),
+                ]);
+
+            $customFields = Helper::apnscpGetCustomFields($service->packageid);
+            Helper::apnscpAddCustomFieldValue($service->id, $customFields['SiteID']['id'], $site);
+        }
+    }
+}
+
+
 /**
- * Log module call function explained
+ * Log module call.
  *
- * @param string       $module        The name of the module
- * @param string       $action        The name of the action being performed
+ * @param string $module The name of the module
+ * @param string $action The name of the action being performed
  * @param string|array $requestString The input parameters for the API call
- * @param string|array $responseData  The response data from the API call
+ * @param string|array $responseData The response data from the API call
  * @param string|array $processedData The resulting data after any post processing (eg. json decode, xml decode, etc...)
- * @param array        $replaceVars   An array of strings for replacement
+ * @param array $replaceVars An array of strings for replacement
  */
-//provided by WHMCS, do not uncomment :)
 //logModuleCall($module, $action, $requestString, $responseData, $processedData, $replaceVars);

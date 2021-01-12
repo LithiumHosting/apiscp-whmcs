@@ -99,8 +99,7 @@ function apnscp_checkIP(array $params)
 
     try
     {
-        $adminId = \session_id();
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint, $adminId);
+        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         if ($client->rampart_is_banned($clientIp))
         {
@@ -123,19 +122,11 @@ function apnscp_checkIP(array $params)
     }
     catch (Exception $e)
     {
-        // Record the error in WHMCS's module log.
-        logModuleCall(
-            'apnscp',
-            __FUNCTION__,
-            $params,
-            $e->getMessage(),
-            $e->getTraceAsString()
-        );
+        // Record the error in WHMCS's activity log.
+        logActivity('ApisCP IP Ban Check Failed: ' . $e->getTraceAsString());
 
         return $e->getMessage();
     }
-
-    return false;
 }
 
 add_hook('DailyCronJob', 1, function () {
