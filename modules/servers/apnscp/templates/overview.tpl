@@ -457,7 +457,7 @@
     {if $systemStatus == 'Active'}
         <div class="col-sm-4">
             <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1" class="btn btn-primary btn-block">
-                Login to LiPanel
+                Login to ApisCP
             </a>
         </div>
     {/if}
