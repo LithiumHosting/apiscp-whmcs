@@ -134,16 +134,18 @@ add_hook('DailyCronJob', 1, function () {
     $servers = WHMCS\Product\Server::where('type', 'apnscp')->where('active', 1)->where('disabled', 0)->get();
     foreach ($servers as $server)
     {
-        $apnscp_apiendpoint = $server->serverhttpprefix . '://' . $server->serverhostname . ':' . $server->serverport ?: 2083;
-        $apnscp_apikey      = decrypt($server->serverpassword);
+        $apnscp_apiendpoint = ($server->secure === 'on' ? 'https' : 'http') . '://' . $server->hostname . ':' . ($server->secure === 'on' ? 2083 : 2082);
+        $apnscp_apikey      = decrypt($server->password);
 
-        $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+        if (!empty($server->hostname))
+
+            $client  = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
 
         $opts['since'] = "30 days ago";
         $opts['match'] = "Deferred Account Cancellation";
         $opts['dry-run'];
         $client->admin_delete_site(null, $opts);
-        logModuleCall('apnscp', 'Deferred Cancellation - ' . $server->serverhostname, str_ireplace('><', ">\n<", $client->__getLastRequest()), str_ireplace('><', ">\n<", $client->__getLastResponse()));
+        logModuleCall('apnscp', 'Deferred Cancellation - ' . $server->hostname, str_ireplace('><', ">\n<", $client->__getLastRequest()), str_ireplace('><', ">\n<", $client->__getLastResponse()));
     }
 
 });
