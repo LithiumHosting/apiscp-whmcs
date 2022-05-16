@@ -6,13 +6,13 @@ use WHMCS\Database\Capsule as DB;
 class Helper
 {
 
-    /**
-     * @param array $params
-     *
-     * @return array
-     */
-    public static function generateOptions(array $params): array
-    {
+	/**
+	 * @param  array  $params
+	 *
+	 * @return array
+	 */
+	public static function generateOptions(array $params): array
+	{
 //        // Addon Domains
 //        if ((int) $params['configoption2'] === 0)
 //        {
@@ -167,101 +167,104 @@ class Helper
 //            }
 //        }
 
-        //Site Info
-        $opts['siteinfo.enabled'] = '1'; // [0,1] Core account attributes
-        $opts['siteinfo.domain'] = $params['domain']; // <string> Primary domain of the account
-        $opts['siteinfo.admin_user'] = $params['username']; // <string> Administrative user of account
-        $opts['siteinfo.email'] = $params['model']->client->email; // [email,[email1,email2...]] Contact address on account
-        $opts['siteinfo.plan'] = $params['configoption1'];
+		// Account Password
+		$opts['auth.tpasswd'] = $params['password']; // Plain Text Password for account
 
-        //Billing
-        $opts['billing.invoice'] = 'WHMCS-' . $params['serviceid']; // Invoice id to link to customer
+		//Site Info
+		$opts['siteinfo.enabled'] = '1'; // [0,1] Core account attributes
+		$opts['siteinfo.domain'] = $params['domain']; // <string> Primary domain of the account
+		$opts['siteinfo.admin_user'] = $params['username']; // <string> Administrative user of account
+		$opts['siteinfo.email'] = $params['model']->client->email; // [email,[email1,email2...]] Contact address on account
+		$opts['siteinfo.plan'] = $params['configoption1'];
 
-        // MySQL
-        $opts['mysql.dbaseadmin'] = $params['username']; // <string> Set mysql admin user
-        $opts['mysql.dbaseprefix'] = $params['username'] . '_'; // <<string> Set MySQL database prefix. Must end with '_'
+		//Billing
+		$opts['billing.invoice'] = 'WHMCS-'.$params['serviceid']; // Invoice id to link to customer
 
-        // PGSQL
-        $opts['pgsql.dbaseadmin'] = $params['username']; // <string> Set pgsql admin user
-        $opts['pgsql.dbaseprefix'] = $params['username'] . '_'; // <string> Set PostgreSQL database prefix. Must end with '_'
+		// MySQL
+		$opts['mysql.dbaseadmin'] = $params['username']; // <string> Set mysql admin user
+		$opts['mysql.dbaseprefix'] = $params['username'].'_'; // <<string> Set MySQL database prefix. Must end with '_'
 
-        return $opts;
-    }
+		// PGSQL
+		$opts['pgsql.dbaseadmin'] = $params['username']; // <string> Set pgsql admin user
+		$opts['pgsql.dbaseprefix'] = $params['username'].'_'; // <string> Set PostgreSQL database prefix. Must end with '_'
 
-    /**
-     * @param array $opts
-     *
-     * @return string
-     */
-    public static function generateCommand(array $opts, $action): string
-    {
-        $optArray[] = $action;
+		return $opts;
+	}
 
-        foreach ($opts as $service => $value) {
-            $service = str_replace('.', ',', $service);
-            $optArray[] = "-c '{$service}'='{$value}'";
-        }
+	/**
+	 * @param  array  $opts
+	 *
+	 * @return string
+	 */
+	public static function generateCommand(array $opts, $action): string
+	{
+		$optArray[] = $action;
 
-        return implode(' ', $optArray);
-    }
+		foreach ($opts as $service => $value) {
+			$service = str_replace('.', ',', $service);
+			$optArray[] = "-c '{$service}'='{$value}'";
+		}
 
-
-    public static function apnscpValidateCustomFields($productId): void
-    {
-        $requiredFields = ['SiteID'];
-        $existingFields = [];
-
-        $customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
-
-        if (! empty($customFields)) {
-            foreach ($customFields as $field) {
-                $existingFields[] = $field->fieldname;
-            }
-        }
-        $newFields = array_diff($requiredFields, $existingFields);
-        foreach ($newFields as $field) {
-            switch ($field) {
-                case 'SiteID':
-                    DB::table('tblcustomfields')->insert(['type' => 'product', 'relid' => $productId, 'fieldname' => 'SiteID', 'fieldtype' => 'text', 'description' => 'ApisCP Site ID', 'fieldoptions' => '', 'adminonly' => 'on', 'sortorder' => 0]);
-                    break;
-            }
-        }
-    }
+		return implode(' ', $optArray);
+	}
 
 
-    public static function apnscpGetCustomFields($productId): array
-    {
-        $customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
-        if (! empty($customFields)) {
-            foreach ($customFields as $field) {
-                $fields[$field->fieldname] = ['id' => $field->id, 'description' => $field->description]; // ACCESS Custom Fields via $customFields['OrderID']['id']; Where OrderID is the name of the custom field.
-            }
-        }
+	public static function apnscpValidateCustomFields($productId): void
+	{
+		$requiredFields = ['SiteID'];
+		$existingFields = [];
 
-        return $fields ?? [];
-    }
+		$customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
 
-    public static function apnscpGetCustomFieldId($hostingId, $fieldId): string
-    {
-        $result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
-        return $result->id ?? '';
-    }
+		if (! empty($customFields)) {
+			foreach ($customFields as $field) {
+				$existingFields[] = $field->fieldname;
+			}
+		}
+		$newFields = array_diff($requiredFields, $existingFields);
+		foreach ($newFields as $field) {
+			switch ($field) {
+				case 'SiteID':
+					DB::table('tblcustomfields')->insert(['type' => 'product', 'relid' => $productId, 'fieldname' => 'SiteID', 'fieldtype' => 'text', 'description' => 'ApisCP Site ID', 'fieldoptions' => '', 'adminonly' => 'on', 'sortorder' => 0]);
+					break;
+			}
+		}
+	}
 
-    public static function apnscpAddCustomFieldValue($hostingId, $fieldId, $value): void
-    {
-        $result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
-        if (! empty($result)) {
-            // update
-            DB::table('tblcustomfieldsvalues')->where('id', $result->id)->update(['value' => $value]);
-        } else {
-            // insert
-            DB::table('tblcustomfieldsvalues')->insert(['fieldid' => $fieldId, 'relid' => $hostingId, 'value' => $value]);
-        }
-    }
 
-    public static function apnscpGetCustomFieldValue($hostingId, $fieldId): string
-    {
-        $result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
-        return $result->value ?? '';
-    }
+	public static function apnscpGetCustomFields($productId): array
+	{
+		$customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
+		if (! empty($customFields)) {
+			foreach ($customFields as $field) {
+				$fields[$field->fieldname] = ['id' => $field->id, 'description' => $field->description]; // ACCESS Custom Fields via $customFields['OrderID']['id']; Where OrderID is the name of the custom field.
+			}
+		}
+
+		return $fields ?? [];
+	}
+
+	public static function apnscpGetCustomFieldId($hostingId, $fieldId): string
+	{
+		$result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
+		return $result->id ?? '';
+	}
+
+	public static function apnscpAddCustomFieldValue($hostingId, $fieldId, $value): void
+	{
+		$result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
+		if (! empty($result)) {
+			// update
+			DB::table('tblcustomfieldsvalues')->where('id', $result->id)->update(['value' => $value]);
+		} else {
+			// insert
+			DB::table('tblcustomfieldsvalues')->insert(['fieldid' => $fieldId, 'relid' => $hostingId, 'value' => $value]);
+		}
+	}
+
+	public static function apnscpGetCustomFieldValue($hostingId, $fieldId): string
+	{
+		$result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
+		return $result->value ?? '';
+	}
 }
