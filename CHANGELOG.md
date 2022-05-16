@@ -6,11 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - Stats update cron task
-- WHMCS usage stats like cPneal module
+- WHMCS usage stats like cPanel module
 - Utilize admin_get_plan to get plan config options for filtering form params
 - Move all text to lang files (I'm lazy)
 - Add X-Forwarded-For header with request for SSO session
 - Ensure Client IP passed with Rampart whitelist
+
 ## [1.0.0] - 2019-07-06
 ### Added
 - Support for creating, terminating, (un)suspending, password changes and SSO
@@ -78,3 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added SiteID Population
 ### Fixed
 - Fixed Admin Session issues
+
+## [1.0.10] 2022-05-16
+### Fixed
+- Password not being set when new account created, defaulted to ApisCP generated random password.
+- Code formatting, embracing the tab
