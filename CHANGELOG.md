@@ -80,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed Admin Session issues
 
-## [1.0.10] 2022-05-16
+## [1.0.13] 2022-05-16
 ### Fixed
 - Password not being set when new account created, defaulted to ApisCP generated random password.
 - Code formatting, embracing the tab
