@@ -24,8 +24,7 @@ add_hook('ClientAreaPageProductDetails', 1, function ($vars) {
         return null;
     }
 
-    $ip = '2.2.2.2'; // DEBUG OVERRIDE — remove before production
-    //$ip = apnscp_getPublicIp();
+    $ip = apnscp_getPublicIp();
 
     if ($ip === null) {
         return ['apisVars' => ['is_banned' => false, 'jails' => [], 'ip' => null, 'rampart_enabled' => false, 'debug' => ['ip' => null, 'is_banned' => 'No', 'jails_raw' => [], 'error' => 'Could not determine public IP.']]];

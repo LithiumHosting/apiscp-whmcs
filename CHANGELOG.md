@@ -124,3 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standalone `apnscp_buildEndpoint()` function; consolidated into `Helper::buildEndpoint()`.
 - Dead `$module`/`$method` local variables from `TerminateAccount`.
 - Dangling commented-out `logModuleCall` signature stub.
+
+## [1.0.15] - 2026-04-01
+### Fixed
+- Removed fake IP used for debugging IP block checking
