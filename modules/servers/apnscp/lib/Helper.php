@@ -1,18 +1,59 @@
 <?php
+/**
+ * apnscp/ApisCP Provisioning Module for WHMCS
+ *
+ * @copyright   Copyright (c) Lithium Hosting, llc 2026
+ * @author      Troy Siedsma (tsiedsma@lithiumhosting.com)
+ * @license     see included LICENSE file
+ */
 
 use WHMCS\Database\Capsule as DB;
-
 
 class Helper
 {
 
-	/**
-	 * @param  array  $params
-	 *
-	 * @return array
-	 */
-	public static function generateOptions(array $params): array
-	{
+    /**
+     * Build the ApisCP endpoint URL and API key from either a WHMCS module params
+     * array or a tblservers row object.
+     *
+     * When passed an array (module params), expects the standard WHMCS keys
+     * serverhttpprefix, serverhostname, serverport, and serverpassword (pre-decrypted).
+     * When passed an object (Eloquent model or stdClass from DB::table), reads the
+     * raw tblservers columns secure, hostname, port, and password (encrypted).
+     *
+     * @param array|object $source Module params array or tblservers row.
+     *
+     * @return array{endpoint: string, apikey: string}
+     */
+    public static function buildEndpoint(array|object $source): array
+    {
+        if (is_array($source)) {
+            return [
+                'endpoint' => $source['serverhttpprefix'] . '://' . $source['serverhostname'] . ':' . $source['serverport'],
+                'apikey'   => $source['serverpassword'],
+            ];
+        }
+
+        return [
+            'endpoint' => ($source->secure === 'on' ? 'https' : 'http') . '://' . $source->hostname . ':' . ($source->port ?: 2083),
+            'apikey'   => decrypt($source->password),
+        ];
+    }
+
+    /**
+     * Build the apnscp site-creation options array from WHMCS module parameters.
+     *
+     * Only the minimal set of parameters required for account creation is
+     * populated here (siteinfo, billing, mysql/pgsql admin user). The large
+     * commented-out block below is retained as reference documentation for the
+     * full set of available apnscp API options.
+     *
+     * @param array $params Common WHMCS module parameters (domain, username, password, configoptionX, model, serviceid).
+     *
+     * @return array Associative array of apnscp API option keys to their values.
+     */
+    public static function generateOptions(array $params): array
+    {
 //        // Addon Domains
 //        if ((int) $params['configoption2'] === 0)
 //        {
@@ -167,104 +208,191 @@ class Helper
 //            }
 //        }
 
-		// Account Password
-		$opts['auth.tpasswd'] = $params['password']; // Plain Text Password for account
+        //Site Info
+        $opts['siteinfo.enabled'] = '1'; // [0,1] Core account attributes
+        $opts['siteinfo.domain'] = $params['domain']; // <string> Primary domain of the account
+        $opts['siteinfo.admin_user'] = $params['username']; // <string> Administrative user of account
+        $opts['siteinfo.email'] = $params['model']->client->email; // [email,[email1,email2...]] Contact address on account
+        $opts['siteinfo.plan'] = $params['configoption1'];
 
-		//Site Info
-		$opts['siteinfo.enabled'] = '1'; // [0,1] Core account attributes
-		$opts['siteinfo.domain'] = $params['domain']; // <string> Primary domain of the account
-		$opts['siteinfo.admin_user'] = $params['username']; // <string> Administrative user of account
-		$opts['siteinfo.email'] = $params['model']->client->email; // [email,[email1,email2...]] Contact address on account
-		$opts['siteinfo.plan'] = $params['configoption1'];
+        //Billing
+        $opts['billing.invoice'] = 'WHMCS-' . $params['serviceid']; // Invoice id to link to customer
 
-		//Billing
-		$opts['billing.invoice'] = 'WHMCS-'.$params['serviceid']; // Invoice id to link to customer
+        // MySQL
+        $opts['mysql.dbaseadmin'] = $params['username']; // <string> Set mysql admin user
+        $opts['mysql.dbaseprefix'] = $params['username'] . '_'; // <string> Set MySQL database prefix. Must end with '_'
 
-		// MySQL
-		$opts['mysql.dbaseadmin'] = $params['username']; // <string> Set mysql admin user
-		$opts['mysql.dbaseprefix'] = $params['username'].'_'; // <<string> Set MySQL database prefix. Must end with '_'
+        // PGSQL
+        $opts['pgsql.dbaseadmin'] = $params['username']; // <string> Set pgsql admin user
+        $opts['pgsql.dbaseprefix'] = $params['username'] . '_'; // <string> Set PostgreSQL database prefix. Must end with '_'
 
-		// PGSQL
-		$opts['pgsql.dbaseadmin'] = $params['username']; // <string> Set pgsql admin user
-		$opts['pgsql.dbaseprefix'] = $params['username'].'_'; // <string> Set PostgreSQL database prefix. Must end with '_'
+        return $opts;
+    }
 
-		return $opts;
-	}
+    /**
+     * Convert an options array into an apnscp CLI command string.
+     *
+     * Each key is converted from dot notation to comma notation and wrapped as
+     * a "-c 'key'='value'" argument, then joined into a single command string
+     * prefixed with the action name (e.g. "AddDomain" or "EditDomain").
+     *
+     * @param array $opts Associative array of apnscp option keys to their values.
+     * @param string $action The CLI action name to prepend (e.g. 'AddDomain').
+     *
+     * @return string The assembled CLI command string, suitable for logging.
+     */
+    public static function generateCommand(array $opts, string $action): string
+    {
+        $optArray = [$action];
 
-	/**
-	 * @param  array  $opts
-	 *
-	 * @return string
-	 */
-	public static function generateCommand(array $opts, $action): string
-	{
-		$optArray[] = $action;
+        foreach ($opts as $service => $value) {
+            $service = str_replace('.', ',', $service);
+            $optArray[] = "-c '{$service}'='{$value}'";
+        }
 
-		foreach ($opts as $service => $value) {
-			$service = str_replace('.', ',', $service);
-			$optArray[] = "-c '{$service}'='{$value}'";
-		}
+        return implode(' ', $optArray);
+    }
 
-		return implode(' ', $optArray);
-	}
+    /**
+     * Pretty-print an XML string for module log readability.
+     *
+     * Inserts a newline between adjacent closing/opening tags so each element
+     * appears on its own line in the WHMCS module log viewer.
+     *
+     * @param string|null $xml Raw XML string, or null if no request/response exists yet.
+     *
+     * @return string The formatted XML string, or an empty string if $xml is null.
+     */
+    public static function formatXml(?string $xml): string
+    {
+        return str_ireplace('><', ">\n<", $xml ?? '');
+    }
 
+    /**
+     * Ensure the required custom fields exist for the given apnscp product.
+     *
+     * Checks whether the "SiteID" custom field is present on the product and
+     * creates it if missing. Uses a per-request static cache so repeated calls
+     * for the same product ID within the same request are no-ops.
+     *
+     * @param int|string $productId The WHMCS product (tblproducts) ID to inspect.
+     *
+     * @return void
+     */
+    public static function apnscpValidateCustomFields(int|string $productId): void
+    {
+        static $validated = [];
 
-	public static function apnscpValidateCustomFields($productId): void
-	{
-		$requiredFields = ['SiteID'];
-		$existingFields = [];
+        if (isset($validated[$productId])) {
+            return;
+        }
 
-		$customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
+        $validated[$productId] = true;
 
-		if (! empty($customFields)) {
-			foreach ($customFields as $field) {
-				$existingFields[] = $field->fieldname;
-			}
-		}
-		$newFields = array_diff($requiredFields, $existingFields);
-		foreach ($newFields as $field) {
-			switch ($field) {
-				case 'SiteID':
-					DB::table('tblcustomfields')->insert(['type' => 'product', 'relid' => $productId, 'fieldname' => 'SiteID', 'fieldtype' => 'text', 'description' => 'ApisCP Site ID', 'fieldoptions' => '', 'adminonly' => 'on', 'sortorder' => 0]);
-					break;
-			}
-		}
-	}
+        $requiredFields = ['SiteID'];
+        $existingFields = [];
 
+        $customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
 
-	public static function apnscpGetCustomFields($productId): array
-	{
-		$customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
-		if (! empty($customFields)) {
-			foreach ($customFields as $field) {
-				$fields[$field->fieldname] = ['id' => $field->id, 'description' => $field->description]; // ACCESS Custom Fields via $customFields['OrderID']['id']; Where OrderID is the name of the custom field.
-			}
-		}
+        foreach ($customFields as $field) {
+            $existingFields[] = $field->fieldname;
+        }
 
-		return $fields ?? [];
-	}
+        foreach (array_diff($requiredFields, $existingFields) as $field) {
+            if ($field === 'SiteID') {
+                DB::table('tblcustomfields')->insert([
+                    'type'         => 'product',
+                    'relid'        => $productId,
+                    'fieldname'    => 'SiteID',
+                    'fieldtype'    => 'text',
+                    'description'  => 'ApisCP Site ID',
+                    'fieldoptions' => '',
+                    'adminonly'    => 'on',
+                    'sortorder'    => 0,
+                ]);
+            }
+        }
+    }
 
-	public static function apnscpGetCustomFieldId($hostingId, $fieldId): string
-	{
-		$result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
-		return $result->id ?? '';
-	}
+    /**
+     * Retrieve all custom fields defined for the given product, keyed by field name.
+     *
+     * Returns an associative array where each key is the custom field's name
+     * (e.g. "SiteID") and each value is an array with "id" and "description"
+     * entries. Returns an empty array when no custom fields exist.
+     *
+     * @param int|string $productId The WHMCS product (tblproducts) ID to look up.
+     *
+     * @return array<string, array{id: int, description: string}>
+     */
+    public static function apnscpGetCustomFields(int|string $productId): array
+    {
+        $fields = [];
+        $customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
 
-	public static function apnscpAddCustomFieldValue($hostingId, $fieldId, $value): void
-	{
-		$result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
-		if (! empty($result)) {
-			// update
-			DB::table('tblcustomfieldsvalues')->where('id', $result->id)->update(['value' => $value]);
-		} else {
-			// insert
-			DB::table('tblcustomfieldsvalues')->insert(['fieldid' => $fieldId, 'relid' => $hostingId, 'value' => $value]);
-		}
-	}
+        foreach ($customFields as $field) {
+            $fields[$field->fieldname] = ['id' => $field->id, 'description' => $field->description];
+        }
 
-	public static function apnscpGetCustomFieldValue($hostingId, $fieldId): string
-	{
-		$result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
-		return $result->value ?? '';
-	}
+        return $fields;
+    }
+
+    /**
+     * Return the tblcustomfieldsvalues row ID for a custom field value.
+     *
+     * Looks up the record in tblcustomfieldsvalues matching the given hosting
+     * service ID and custom field ID, returning the row's primary key. Returns
+     * an empty string when no matching record exists.
+     *
+     * @param int|string $hostingId The tblhosting service ID.
+     * @param int|string $fieldId The tblcustomfields field ID.
+     *
+     * @return string The row ID, or an empty string if not found.
+     */
+    public static function apnscpGetCustomFieldId(int|string $hostingId, int|string $fieldId): string
+    {
+        $result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
+        return $result->id ?? '';
+    }
+
+    /**
+     * Insert or update a custom field value for a hosting service.
+     *
+     * Checks whether a value record already exists for the given hosting
+     * service ID and field ID. If it does, the existing record is updated;
+     * otherwise a new record is inserted.
+     *
+     * @param int|string $hostingId The tblhosting service ID.
+     * @param int|string $fieldId The tblcustomfields field ID.
+     * @param mixed $value The value to store.
+     *
+     * @return void
+     */
+    public static function apnscpAddCustomFieldValue(int|string $hostingId, int|string $fieldId, mixed $value): void
+    {
+        $result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
+        if (! empty($result)) {
+            DB::table('tblcustomfieldsvalues')->where('id', $result->id)->update(['value' => $value]);
+        } else {
+            DB::table('tblcustomfieldsvalues')->insert(['fieldid' => $fieldId, 'relid' => $hostingId, 'value' => $value]);
+        }
+    }
+
+    /**
+     * Retrieve the stored value of a custom field for a hosting service.
+     *
+     * Returns the current value from tblcustomfieldsvalues for the given
+     * hosting service ID and custom field ID. Returns an empty string when
+     * no matching record exists.
+     *
+     * @param int|string $hostingId The tblhosting service ID.
+     * @param int|string $fieldId The tblcustomfields field ID.
+     *
+     * @return string The stored field value, or an empty string if not found.
+     */
+    public static function apnscpGetCustomFieldValue(int|string $hostingId, int|string $fieldId): string
+    {
+        $result = DB::table('tblcustomfieldsvalues')->where('fieldid', $fieldId)->where('relid', $hostingId)->first();
+        return $result->value ?? '';
+    }
 }

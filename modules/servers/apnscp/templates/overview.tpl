@@ -21,6 +21,11 @@
         display: block;
         margin: 0 auto 5px auto;
     }
+
+    .apiscp-feature-row i:before {
+        display: inline-block;
+        text-decoration: none;
+    }
 </style>
 <h2>Overview</h2>
 <div class="row">
@@ -28,7 +33,7 @@
 
         <div class="panel panel-default card mb-3" id="PackagePanel">
             <div class="panel-heading card-header">
-                <h3 class="panel-title card-title m-0">{$LANG.cPanel.packageDomain}</h3>
+                <h3 class="panel-title card-title m-0">{lang key='packageDomain'}</h3>
             </div>
             <div class="panel-body card-body text-center">
 
@@ -36,12 +41,30 @@
                     <em>{$groupname}</em>
                     <h4 style="margin:0;">{$product}</h4>
                     <a href="http://{$domain}" target="_blank">www.{$domain}</a>
+
+                    <dl class="dl-horizontal">
+                        <dt>Server Hostname</dt>
+                        <dd>{$serverdata.hostname}</dd>
+                        {if $dedicatedip}
+                            <dt>{lang key='clientareadedicatedip'} {lang key='domainregisternsip'}</dt>
+                            <dd>{$dedicatedip}</dd>
+                        {else}
+                            <dt>{lang key='clientareasharedip'} {lang key='domainregisternsip'}</dt>
+                            <dd> {$serverdata.ipaddress}</dd>
+                        {/if}
+                    </dl>
+                </div>
+
+                <div class="row">
+                    <div class="col-xs-12 col-md-12 text-left">
+                        
+                    </div>
                 </div>
 
                 <p>
-                    <a href="http://{$domain}" class="btn btn-default btn-sm" target="_blank">{$LANG.visitwebsite}</a>
+                    <a href="http://{$domain}" class="btn btn-default btn-sm" target="_blank">{lang key='visitwebsite'}</a>
                     {if $domainId}
-                        <a href="clientarea.php?action=domaindetails&id={$domainId}" class="btn btn-success btn-sm" target="_blank">{$LANG.managedomain}</a>
+                        <a href="clientarea.php?action=domaindetails&id={$domainId}" class="btn btn-success btn-sm" target="_blank">{lang key='managedomain'}</a>
                     {/if}
                 </p>
 
@@ -54,20 +77,20 @@
 
         <div class="panel panel-default card mb-3" id="panelUsagePanel">
             <div class="panel-heading card-header">
-                <h3 class="panel-title card-title m-0">{$LANG.cPanel.usageStats}</h3>
+                <h3 class="panel-title card-title m-0">{lang key='usageStats'}</h3>
             </div>
             <div class="panel-body card-body text-center apiscp-usage-stats">
 
                 <div class="row">
                     <div class="col-sm-6 col-xs-6 col-6" id="diskUsage">
-                        <strong>{$LANG.cPanel.diskUsage}</strong>
+                        <strong>{lang key='diskUsage'}</strong>
                         <br /><br />
                         <input type="text" value="{$diskpercent|substr:0:-1}" class="usage-dial" data-fgColor="#444" data-angleOffset="-125" data-angleArc="250" data-min="0" data-max="{if substr($diskpercent, 0, -1) > 100}{$diskpercent|substr:0:-1}{else}100{/if}" data-readOnly="true" data-width="100" data-height="80" />
                         <br /><br />
                         {$diskusage} M / {$disklimit} M
                     </div>
                     <div class="col-sm-6 col-xs-6 col-6" id="bandwidthUsage">
-                        <strong>{$LANG.cPanel.bandwidthUsage}</strong>
+                        <strong>{lang key='bandwidthUsage'}</strong>
                         <br /><br />
                         <input type="text" value="{$bwpercent|substr:0:-1}" class="usage-dial" data-fgColor="#d9534f" data-angleOffset="-125" data-angleArc="250" data-min="0" data-max="{if substr($bwpercent, 0, -1) > 100}{$bwpercent|substr:0:-1}{else}100{/if}" data-readOnly="true" data-width="100" data-height="80" />
                         <br /><br />
@@ -78,9 +101,9 @@
                 {if $bwpercent|substr:0:-1 > 75}
                     <div class="text-danger limit-near">
                         {if $bwpercent|substr:0:-1 > 100}
-                            {$LANG.cPanel.usageStatsBwOverLimit}
+                            {lang key='usageStatsBwOverLimit'}
                         {else}
-                            {$LANG.cPanel.usageStatsBwLimitNear}
+                            {lang key='usageStatsBwLimitNear'}
                         {/if}
                         {if $packagesupgrade}
                             <a href="upgrade.php?type=package&id={$serviceid}" class="btn btn-xs btn-danger">
@@ -92,20 +115,20 @@
                 {elseif $diskpercent|substr:0:-1 > 75}
                     <div class="text-danger limit-near">
                         {if $diskpercent|substr:0:-1 > 100}
-                            {$LANG.cPanel.usageStatsDiskOverLimit}
+                            {lang key='usageStatsDiskOverLimit'}
                         {else}
-                            {$LANG.cPanel.usageStatsDiskLimitNear}
+                            {lang key='usageStatsDiskLimitNear'}
                         {/if}
                         {if $packagesupgrade}
                             <a href="upgrade.php?type=package&id={$serviceid}" class="btn btn-xs btn-danger">
                                 <i class="fas fa-arrow-circle-up"></i>
-                                {$LANG.cPanel.usageUpgradeNow}
+                                {lang key='usageUpgradeNow'}
                             </a>
                         {/if}
                     </div>
                 {else}
                     <div class="text-info limit-near">
-                        {$LANG.cPanel.usageLastUpdated} {$lastupdate}
+                        {lang key='usageLastUpdated'} {$lastupdate}
                     </div>
                 {/if}
 
@@ -128,7 +151,7 @@
 {if $availableAddonProducts}
     <div class="panel panel-default card mb-3" id="panelExtrasPurchasePanel">
         <div class="panel-heading card-header">
-            <h3 class="panel-title card-title m-0">{$LANG.cPanel.addonsExtras}</h3>
+            <h3 class="panel-title card-title m-0">{lang key='addonsExtras'}</h3>
         </div>
         <div class="panel-body card-body text-center mx-auto">
 
@@ -141,7 +164,7 @@
                 </select>
                 <button type="submit" class="btn btn-default btn-sm mt-1">
                     <i class="fas fa-shopping-cart"></i>
-                    {$LANG.cPanel.purchaseActivate}
+                    {lang key='purchaseActivate'}
                 </button>
             </form>
 
@@ -151,13 +174,13 @@
 
 <div class="panel panel-default card mb-3" id="productdetails">
     <div class="panel-heading card-header">
-        <h3 class="panel-title card-title m-0">{$LANG.clientareaproductdetails}</h3>
+        <h3 class="panel-title card-title m-0">{lang key='clientareaproductdetails'}</h3>
     </div>
     <div class="panel-body card-body text-left">
 
         <div class="row">
             <div class="col-sm-5">
-                {$LANG.clientareahostingregdate}
+                {lang key='clientareahostingregdate'}
             </div>
             <div class="col-sm-7">
                 {$regdate}
@@ -166,7 +189,7 @@
 
         <div class="row">
             <div class="col-sm-5">
-                {$LANG.orderproduct}
+                {lang key='orderproduct'}
             </div>
             <div class="col-sm-7">
                 {$groupname} - {$product}
@@ -177,18 +200,18 @@
         {if $domain}
             <div class="row">
                 <div class="col-sm-5">
-                    {$LANG.orderdomain}
+                    {lang key='orderdomain'}
                 </div>
                 <div class="col-sm-7">
                     {$domain}
-                    <a href="http://{$domain}" target="_blank" class="btn btn-default btn-xs">{$LANG.visitwebsite}</a>
+                    <a href="http://{$domain}" target="_blank" class="btn btn-default btn-xs">{lang key='visitwebsite'}</a>
                 </div>
             </div>
         {/if}
         {if $username}
             <div class="row">
                 <div class="col-sm-5">
-                    {$LANG.serverusername}
+                    {lang key='serverusername'}
                 </div>
                 <div class="col-sm-7">
                     {$username}
@@ -198,7 +221,7 @@
         {if $serverdata}
             <div class="row">
                 <div class="col-sm-5">
-                    {$LANG.servername}
+                    {lang key='servername'}
                 </div>
                 <div class="col-sm-7">
                     {$serverdata.hostname}
@@ -206,7 +229,7 @@
             </div>
             <div class="row">
                 <div class="col-sm-5">
-                    {$LANG.domainregisternsip}
+                    {lang key='domainregisternsip'}
                 </div>
                 <div class="col-sm-7">
                     {$serverdata.ipaddress}
@@ -215,7 +238,7 @@
             {if $serverdata.nameserver1 || $serverdata.nameserver2 || $serverdata.nameserver3 || $serverdata.nameserver4 || $serverdata.nameserver5}
                 <div class="row">
                     <div class="col-sm-5">
-                        {$LANG.domainnameservers}
+                        {lang key='domainnameservers'}
                     </div>
                     <div class="col-sm-7">
                         {if $serverdata.nameserver1}{$serverdata.nameserver1}{if $serverdata.nameserver1ip} ({$serverdata.nameserver1ip}){/if}<br/>{/if}
@@ -231,7 +254,7 @@
         {if $dedicatedip}
             <div class="row">
                 <div class="col-sm-5">
-                    {$LANG.domainregisternsip}
+                    {lang key='domainregisternsip'}
                 </div>
                 <div class="col-sm-7">
                     {$dedicatedip}
@@ -247,9 +270,9 @@
                 <div class="col-sm-7">
                     {if $configoption.optiontype eq 3}
                         {if $configoption.selectedqty}
-                            {$LANG.yes}
+                            {lang key='yes'}
                         {else}
-                            {$LANG.no}
+                            {lang key='no'}
                         {/if}
                     {elseif $configoption.optiontype eq 4}
                         {$configoption.selectedqty} x {$configoption.selectedoption}
@@ -274,7 +297,7 @@
         {if $lastupdate}
             <div class="row">
                 <div class="col-sm-5">
-                    {$LANG.clientareadiskusage}
+                    {lang key='clientareadiskusage'}
                 </div>
                 <div class="col-sm-7">
                     {$diskusage}MB / {$disklimit}MB ({$diskpercent})
@@ -282,7 +305,7 @@
             </div>
             <div class="row">
                 <div class="col-sm-5">
-                    {$LANG.clientareabwusage}
+                    {lang key='clientareabwusage'}
                 </div>
                 <div class="col-sm-7">
                     {$bwusage}MB / {$bwlimit}MB ({$bwpercent})
@@ -292,7 +315,7 @@
 
         <div class="row">
             <div class="col-sm-5">
-                {$LANG.orderpaymentmethod}
+                {lang key='orderpaymentmethod'}
             </div>
             <div class="col-sm-7">
                 {$paymentmethod}
@@ -301,7 +324,7 @@
 
         <div class="row">
             <div class="col-sm-5">
-                {$LANG.firstpaymentamount}
+                {lang key='firstpaymentamount'}
             </div>
             <div class="col-sm-7">
                 {$firstpaymentamount}
@@ -310,7 +333,7 @@
 
         <div class="row">
             <div class="col-sm-5">
-                {$LANG.recurringamount}
+                {lang key='recurringamount'}
             </div>
             <div class="col-sm-7">
                 {$recurringamount}
@@ -319,7 +342,7 @@
 
         <div class="row">
             <div class="col-sm-5">
-                {$LANG.clientareahostingnextduedate}
+                {lang key='clientareahostingnextduedate'}
             </div>
             <div class="col-sm-7">
                 {$nextduedate}
@@ -328,7 +351,7 @@
 
         <div class="row">
             <div class="col-sm-5">
-                {$LANG.orderbillingcycle}
+                {lang key='orderbillingcycle'}
             </div>
             <div class="col-sm-7">
                 {$billingcycle}
@@ -337,7 +360,7 @@
 
         <div class="row">
             <div class="col-sm-5">
-                {$LANG.clientareastatus}
+                {lang key='clientareastatus'}
             </div>
             <div class="col-sm-7">
                 {$status}
@@ -347,7 +370,7 @@
         {if $suspendreason}
             <div class="row">
                 <div class="col-sm-5">
-                    {$LANG.suspendreason}
+                    {lang key='suspendreason'}
                 </div>
                 <div class="col-sm-7">
                     {$suspendreason}
@@ -366,84 +389,84 @@
             <div class="row apiscp-feature-row">
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=usermanage" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-users fa-3x fa-fw"></i>
+                        <i class="fas fa-users fa-3x fa-fw icon"></i>
                         <p>User Manager<br><small>Manage account users</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=mailboxroutes" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-inbox-in fa-3x fa-fw"></i>
+                        <i class="fas fa-inbox-in fa-3x fa-fw icon"></i>
                         <p>Email Accounts<br><small>Manage Email Accounts</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=vacation" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-plane fa-3x fa-fw"></i>
+                        <i class="fas fa-plane fa-3x fa-fw icon"></i>
                         <p>Vacation Responder<br><small>Set your out-of-office reply</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=filemanager" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-folder fa-3x fa-fw"></i>
+                        <i class="fas fa-folder fa-3x fa-fw icon"></i>
                         <p>File Manager<br><small>Upload / Download Files</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=subdomains" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-columns fa-3x fa-fw"></i>
+                        <i class="fas fa-columns fa-3x fa-fw icon"></i>
                         <p>Subdomains<br><small>Manage Subdomains</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=domainmanager" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-cloud fa-3x fa-fw"></i>
+                        <i class="fas fa-cloud fa-3x fa-fw icon"></i>
                         <p>Addon Domains<br><small>Manage Addon Domains</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=crontab" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-clock fa-3x fa-fw"></i>
+                        <i class="fas fa-clock fa-3x fa-fw icon"></i>
                         <p>Scheduled Tasks<br><small>Manage your crontab</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=bandwidthbd" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-chart-line fa-3x fa-fw"></i>
+                        <i class="fas fa-chart-line fa-3x fa-fw icon"></i>
                         <p>Bandwidth Usage<br><small>View bandwidth usage</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=changemysql" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-database fa-3x fa-fw"></i>
+                        <i class="fas fa-database fa-3x fa-fw icon"></i>
                         <p>MySQL Manager<br><small>Add / Remove Databases</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=phpmyadmin" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-toolbox fa-3x fa-fw"></i>
+                        <i class="fas fa-toolbox fa-3x fa-fw icon"></i>
                         <p>phpMyAdmin<br><small>Manage databases</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=terminal" target="_blank" class="d-block mb-3">
-                        <i class="fas fa-terminal fa-3x fa-fw"></i>
+                        <i class="fas fa-terminal fa-3x fa-fw icon"></i>
                         <p>SSH / Terminal<br><small>Manage your site like a boss</small></p>
                     </a>
                 </div>
 
                 <div class="col-md-3 col-sm-4 col-xs-6 col-6">
                     <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1&amp;app=webapps" target="_blank" class="d-block mb-3">
-                        <i class="fab fa-wordpress fa-3x fa-fw"></i>
+                        <i class="fab fa-wordpress fa-3x fa-fw icon"></i>
                         <p>Web Apps<br><small>Install and Manage Apps</small></p>
                     </a>
                 </div>
@@ -455,11 +478,11 @@
 
 <div class="row">
     {if $systemStatus == 'Active'}
-        <div class="col-sm-4">
-            <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1" class="btn btn-primary btn-block">
-                Login to ApisCP
-            </a>
-        </div>
+    <div class="col-sm-4">
+        <a href="clientarea.php?action=productdetails&amp;id={$serviceid}&amp;dosinglesignon=1" class="btn btn-primary btn-block">
+            Login to ApisCP
+        </a>
+    </div>
     {/if}
 
     {if $packagesupgrade}
