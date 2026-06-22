@@ -35,11 +35,11 @@ function apnscp_MetaData(): array
         'RequiresServer'           => true,
         'DefaultNonSSLPort'        => '2082',
         'DefaultSSLPort'           => '2083',
-        'ServiceSingleSignOnLabel' => 'Login to ApisCP',
-        //        'AdminSingleSignOnLabel'                  => 'Login to ApisCP as Admin',
-        //        'ListAccountsUniqueIdentifierDisplayName' => 'Domain',
-        //        'ListAccountsUniqueIdentifierField'       => 'domain',
-        //        'ListAccountsProductField'                => 'configoption1',
+        'ServiceSingleSignOnLabel' => 'Login to LiPanel',
+        'AdminSingleSignOnLabel'   => 'Login to ApisCP',
+        'ListAccountsUniqueIdentifierDisplayName' => 'Domain',
+        'ListAccountsUniqueIdentifierField'       => 'domain',
+        'ListAccountsProductField'                => 'configoption1',
     ];
 }
 
@@ -216,12 +216,12 @@ function apnscp_TerminateAccount(array $params): string
         
         // Delete Accounts when WHMCS says so...
         // Comment Out to disable Termination/Cancellation
-        $client->admin_delete_site($site_domain, ['force' => true]); 
+//        $client->admin_delete_site($site_domain, ['force' => true]);
         
         // Defer Deletion to allow recovery in the event you can retain a customer or they change their mind.
         // Managed in hooks.php in the Daily Cron Job task
         // Uncomment to enable deferred cancellation.
-//        $client->admin_deactivate_site($site_domain, ['reason' => 'Deferred Account Cancellation']); 
+        $client->admin_deactivate_site($site_domain, ['reason' => 'Deferred Account Cancellation']);
 
         logModuleCall(
             'apnscp',
@@ -415,6 +415,60 @@ function apnscp_ServiceSingleSignOn(array $params): array
 }
 
 /**
+ * Perform single sign-on into the apnscp admin (server) control panel.
+ *
+ * Called when an admin clicks the "Login to ApisCP" button on the admin
+ * service page. The connecting API key authenticates as the server
+ * administrator, so the admin identity is read from auth_session_info and a UI
+ * session is hijacked for that account, returning a redirect into the admin
+ * dashboard.
+ *
+ * The apnscp administrator has no domain of its own (site_id 0), so the server
+ * hostname is passed as the hijack site when the session reports no domain.
+ *
+ * @param array $params common module parameters (includes server connection details).
+ *
+ * @return array{success: bool, redirectTo?: string, errorMsg?: string}
+ * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
+ */
+function apnscp_AdminSingleSignOn(array $params): array
+{
+    ['endpoint' => $apnscp_apiendpoint, 'apikey' => $apnscp_apikey] = Helper::buildEndpoint($params);
+
+    $client = null;
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+
+        $session   = (array) $client->auth_session_info();
+        $adminUser = (string) ($session['username'] ?? '');
+        $adminSite = (string) ($session['domain'] ?: $params['serverhostname']);
+
+        $session_id = $client->admin_hijack($adminSite, $adminUser, 'UI');
+
+        $url = "{$apnscp_apiendpoint}/apps/dashboard?" . http_build_query(['esprit_id' => $session_id]);
+
+        logModuleCall('apnscp', 'AdminSSO', ['Request' => Helper::formatXml($client->__getLastRequest())], Helper::formatXml($client->__getLastResponse()));
+
+        return [
+            'success'    => true,
+            'redirectTo' => $url,
+        ];
+    } catch (\Throwable $e) {
+        logModuleCall(
+            'apnscp',
+            'AdminSSO',
+            $client ? Helper::formatXml($client->__getLastRequest()) : '',
+            $e->getMessage() . "\n\n" . $e->getTraceAsString() . "\n\n" . ($client ? Helper::formatXml($client->__getLastResponse()) : '')
+        );
+
+        return [
+            'success'  => false,
+            'errorMsg' => $e->getMessage(),
+        ];
+    }
+}
+
+/**
  * Client area output logic handling.
  *
  * Returns the template override used to render the service overview in the
@@ -561,5 +615,260 @@ function apnscp_UsageUpdate(array $params): void
             $client ? Helper::formatXml($client->__getLastRequest()) : '',
             $e->getMessage() . "\n\n" . $e->getTraceAsString()
         );
+    }
+}
+
+/**
+ * Enumerate every account on an apnscp server for the Sync Accounts tool.
+ *
+ * Powers the "Sync Accounts" button in WHMCS (Configuration > Servers, or
+ * Utilities > Server Sync). WHMCS calls this once per server and matches the
+ * returned accounts against existing services using the unique identifier
+ * declared in apnscp_MetaData (the domain), offering to import any account
+ * that has no matching service.
+ *
+ * A single admin_collect call returns the relevant siteinfo for all sites.
+ * apnscp keys the result by internal site ID and, for each site, returns the
+ * domain and an `active` flag at the top level alongside the per-module
+ * sub-arrays (e.g. ['active' => true, 'siteinfo' => ['domain' => ..., 'plan'
+ * => ..., 'admin_user' => ...], 'domain' => ...]). Values are read defensively
+ * so servers that return them flat still work.
+ *
+ * Status is taken from the top-level `active` flag, which reflects apnscp's
+ * activate/deactivate state — the same state apnscp_SuspendAccount toggles via
+ * admin_deactivate_site — making it the reliable suspended indicator (the
+ * billing.suspended field comes back null on current builds).
+ *
+ * The account creation date comes from billing.ctime (a Unix timestamp set
+ * when the site was created); it falls back to today only if that value is
+ * missing. The 'created' value must be a valid "Y-m-d H:i:s" string, since
+ * WHMCS parses it with that exact format when matching accounts.
+ *
+ * @param array $params Standard server connection params (serverhostname,
+ *                      serverport, serverpassword, serverhttpprefix, serverip, etc.).
+ *
+ * @return array{success: bool, accounts: array<int, array<string, string>>, error?: string}
+ * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
+ */
+function apnscp_ListAccounts(array $params): array
+{
+    ['endpoint' => $apnscp_apiendpoint, 'apikey' => $apnscp_apikey] = Helper::buildEndpoint($params);
+
+    $serverIp = $params['serverip'] ?? '';
+
+    $client = null;
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+
+        $sites = (array) $client->admin_collect([
+            'siteinfo.domain',
+            'siteinfo.plan',
+            'siteinfo.admin_user',
+            'siteinfo.email',
+            'billing.ctime',
+        ]);
+
+        logModuleCall(
+            'apnscp',
+            'ListAccounts',
+            ['endpoint' => $apnscp_apiendpoint, 'request' => Helper::formatXml($client->__getLastRequest())],
+            Helper::formatXml($client->__getLastResponse())
+        );
+
+        $accounts = [];
+        foreach ($sites as $siteId => $info) {
+            if (! is_array($info)) {
+                continue;
+            }
+
+            $siteinfo = is_array($info['siteinfo'] ?? null) ? $info['siteinfo'] : [];
+            $billing  = is_array($info['billing'] ?? null) ? $info['billing'] : [];
+
+            // Domain and the active flag live at the top level of each site,
+            // alongside the per-module sub-arrays.
+            $domain = strtolower((string) ($info['domain'] ?? $siteinfo['domain'] ?? ''));
+            if ($domain === '') {
+                continue;
+            }
+
+            $username = (string) ($siteinfo['admin_user'] ?? '');
+            $active   = (bool) ($info['active'] ?? true);
+
+            // billing.ctime is the account creation Unix timestamp; fall back to
+            // today only when it's missing.
+            $ctime   = $billing['ctime'] ?? null;
+            $created = (is_numeric($ctime) && $ctime > 0)
+                ? date('Y-m-d H:i:s', (int) $ctime)
+                : date('Y-m-d H:i:s');
+
+            $accounts[] = [
+                'uniqueIdentifier' => $domain,
+                'name'             => $username !== '' ? $username : $domain,
+                'email'            => (string) ($siteinfo['email'] ?? ''),
+                'username'         => $username,
+                'domain'           => $domain,
+                'product'          => (string) ($siteinfo['plan'] ?? ''),
+                'primaryip'        => $serverIp,
+                'created'          => $created,
+                'status'           => $active ? Status::ACTIVE : Status::SUSPENDED,
+            ];
+        }
+
+        return ['success' => true, 'accounts' => $accounts];
+    } catch (\Throwable $e) {
+        logModuleCall(
+            'apnscp',
+            'ListAccounts',
+            $client ? Helper::formatXml($client->__getLastRequest()) : '',
+            $e->getMessage() . "\n\n" . $e->getTraceAsString() . "\n\n" . ($client ? Helper::formatXml($client->__getLastResponse()) : '')
+        );
+
+        return ['success' => false, 'accounts' => [], 'error' => $e->getMessage()];
+    }
+}
+
+/**
+ * Collect remote server statistics for display on the admin Servers page.
+ *
+ * Called by WHMCS (and cached) to show live server health alongside the server
+ * in the admin area. Gathers the apnscp control-panel and platform versions,
+ * load averages, uptime, PHP/MySQL/PostgreSQL/kernel versions, and the total
+ * account count. The result is passed back to apnscp_RenderRemoteMetaData for
+ * formatting.
+ *
+ * @param array $params common module parameters (includes server connection details).
+ *
+ * @return array Metadata on success, or ['success' => false, 'error' => string] on failure.
+ * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
+ */
+function apnscp_GetRemoteMetaData(array $params): array
+{
+    ['endpoint' => $apnscp_apiendpoint, 'apikey' => $apnscp_apikey] = Helper::buildEndpoint($params);
+
+    $client = null;
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+
+        $cp       = (array) $client->misc_cp_version('');
+        $platform = (string) $client->misc_platform_version();
+        $load     = (array) $client->common_get_load();
+        $uptime   = (string) $client->common_get_uptime(true);
+        $php      = (string) $client->common_get_php_version();
+        $mysql    = $client->common_get_mysql_version();
+        $pgsql    = (string) $client->common_get_postgresql_version();
+        $kernel   = (string) $client->common_get_kernel_version();
+        $accounts = count((array) $client->admin_collect(['siteinfo.domain']));
+
+        $cpVersion = isset($cp['ver_maj'])
+            ? $cp['ver_maj'] . '.' . ($cp['ver_min'] ?? 0) . '.' . ($cp['ver_patch'] ?? 0)
+            : '-';
+
+        return [
+            'cp_version' => $cpVersion,
+            'platform'   => $platform ?: '-',
+            'php'        => $php ?: '-',
+            'mysql'      => Helper::formatDbVersion($mysql),
+            'pgsql'      => Helper::formatDbVersion($pgsql),
+            'kernel'     => trim(preg_replace('/\s+/', ' ', $kernel)),
+            'load'       => [
+                '1'  => $load[1] ?? $load['1'] ?? '0',
+                '5'  => $load[5] ?? $load['5'] ?? '0',
+                '15' => $load[15] ?? $load['15'] ?? '0',
+            ],
+            'uptime'   => $uptime ?: '-',
+            'accounts' => $accounts,
+        ];
+    } catch (\Throwable $e) {
+        logModuleCall(
+            'apnscp',
+            'GetRemoteMetaData',
+            $client ? Helper::formatXml($client->__getLastRequest()) : '',
+            $e->getMessage() . "\n\n" . $e->getTraceAsString()
+        );
+
+        return ['success' => false, 'error' => $e->getMessage()];
+    }
+}
+
+/**
+ * Render the statistics gathered by apnscp_GetRemoteMetaData as HTML.
+ *
+ * Reads the cached metadata from $params['remoteData']->metaData and formats it
+ * for the admin Servers page. Returns an empty string when no metadata is
+ * available (e.g. the server was unreachable at collection time).
+ *
+ * @param array $params common module parameters, with 'remoteData' carrying the cached metadata.
+ *
+ * @return string HTML fragment describing the server, or '' when unavailable.
+ * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
+ */
+function apnscp_RenderRemoteMetaData(array $params): string
+{
+    $remoteData = $params['remoteData'] ?? null;
+    if (! $remoteData) {
+        return '';
+    }
+
+    $metaData = (array) $remoteData->metaData;
+    if (empty($metaData) || ! empty($metaData['error'])) {
+        return '';
+    }
+
+    $cpVersion = $metaData['cp_version'] ?? '-';
+    $platform  = $metaData['platform'] ?? '-';
+    $php       = $metaData['php'] ?? '-';
+    $mysql     = $metaData['mysql'] ?? '-';
+    $pgsql     = $metaData['pgsql'] ?? '-';
+    $kernel    = $metaData['kernel'] ?? '-';
+    $uptime    = $metaData['uptime'] ?? '-';
+    $accounts  = $metaData['accounts'] ?? '0';
+    $load      = $metaData['load'] ?? ['1' => '0', '5' => '0', '15' => '0'];
+    $loadStr   = ($load['1'] ?? '0') . ' ' . ($load['5'] ?? '0') . ' ' . ($load['15'] ?? '0');
+
+    return "ApisCP Version: " . $cpVersion . " (Platform " . $platform . ")<br>\n"
+        . "Accounts: " . $accounts . "<br>\n"
+        . "Load Averages: " . $loadStr . "<br>\n"
+        . "Uptime: " . $uptime . "<br>\n"
+        . "PHP: " . $php . " &nbsp;|&nbsp; MySQL: " . $mysql . " &nbsp;|&nbsp; PostgreSQL: " . $pgsql . "<br>\n"
+        . "Kernel: " . $kernel;
+}
+
+/**
+ * Report the number of accounts on the server for the admin Servers page.
+ *
+ * Called by WHMCS (on a schedule and via the per-server refresh button) to
+ * populate the "Remote Usage Stats" column. Without this function the column
+ * shows 0. Every apnscp site is administered by the connecting admin key, so
+ * the owned and total counts are the same.
+ *
+ * @param array $params common module parameters (includes server connection details).
+ *
+ * @return array{success: bool, totalAccounts?: int, ownedAccounts?: int, error?: string}
+ * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
+ */
+function apnscp_GetUserCount(array $params): array
+{
+    ['endpoint' => $apnscp_apiendpoint, 'apikey' => $apnscp_apikey] = Helper::buildEndpoint($params);
+
+    $client = null;
+    try {
+        $client = ApisConnector::create_client($apnscp_apikey, $apnscp_apiendpoint);
+
+        $count = count((array) $client->admin_collect(['siteinfo.domain']));
+
+        return [
+            'success'       => true,
+            'totalAccounts' => $count,
+            'ownedAccounts' => $count,
+        ];
+    } catch (\Throwable $e) {
+        logModuleCall(
+            'apnscp',
+            'GetUserCount',
+            $client ? Helper::formatXml($client->__getLastRequest()) : '',
+            $e->getMessage() . "\n\n" . $e->getTraceAsString()
+        );
+
+        return ['success' => false, 'error' => $e->getMessage()];
     }
 }

@@ -209,21 +209,21 @@ class Helper
 //        }
 
         //Site Info
-        $opts['siteinfo.enabled'] = '1'; // [0,1] Core account attributes
-        $opts['siteinfo.domain'] = $params['domain']; // <string> Primary domain of the account
+        $opts['siteinfo.enabled']    = '1'; // [0,1] Core account attributes
+        $opts['siteinfo.domain']     = $params['domain']; // <string> Primary domain of the account
         $opts['siteinfo.admin_user'] = $params['username']; // <string> Administrative user of account
-        $opts['siteinfo.email'] = $params['model']->client->email; // [email,[email1,email2...]] Contact address on account
-        $opts['siteinfo.plan'] = $params['configoption1'];
+        $opts['siteinfo.email']      = $params['model']->client->email; // [email,[email1,email2...]] Contact address on account
+        $opts['siteinfo.plan']       = $params['configoption1'];
 
         //Billing
         $opts['billing.invoice'] = 'WHMCS-' . $params['serviceid']; // Invoice id to link to customer
 
         // MySQL
-        $opts['mysql.dbaseadmin'] = $params['username']; // <string> Set mysql admin user
+        $opts['mysql.dbaseadmin']  = $params['username']; // <string> Set mysql admin user
         $opts['mysql.dbaseprefix'] = $params['username'] . '_'; // <string> Set MySQL database prefix. Must end with '_'
 
         // PGSQL
-        $opts['pgsql.dbaseadmin'] = $params['username']; // <string> Set pgsql admin user
+        $opts['pgsql.dbaseadmin']  = $params['username']; // <string> Set pgsql admin user
         $opts['pgsql.dbaseprefix'] = $params['username'] . '_'; // <string> Set PostgreSQL database prefix. Must end with '_'
 
         return $opts;
@@ -236,7 +236,7 @@ class Helper
      * a "-c 'key'='value'" argument, then joined into a single command string
      * prefixed with the action name (e.g. "AddDomain" or "EditDomain").
      *
-     * @param array $opts Associative array of apnscp option keys to their values.
+     * @param array  $opts   Associative array of apnscp option keys to their values.
      * @param string $action The CLI action name to prepend (e.g. 'AddDomain').
      *
      * @return string The assembled CLI command string, suitable for logging.
@@ -246,11 +246,33 @@ class Helper
         $optArray = [$action];
 
         foreach ($opts as $service => $value) {
-            $service = str_replace('.', ',', $service);
+            $service    = str_replace('.', ',', $service);
             $optArray[] = "-c '{$service}'='{$value}'";
         }
 
         return implode(' ', $optArray);
+    }
+
+    /**
+     * Format apnscp's numeric database version into a dotted string.
+     *
+     * common_get_mysql_version and common_get_postgresql_version return the
+     * compiled integer form (major * 10000 + minor * 100 + patch), e.g.
+     * 101118 => "10.11.18" and 151800 => "15.18.0". Non-numeric or non-positive
+     * input is returned as a plain string, or "-" when empty.
+     *
+     * @param mixed $raw The raw version value from the apnscp API.
+     *
+     * @return string The dotted version string.
+     */
+    public static function formatDbVersion(mixed $raw): string
+    {
+        $n = (int) $raw;
+        if ($n <= 0) {
+            return (string) $raw !== '' ? (string) $raw : '-';
+        }
+
+        return intdiv($n, 10000) . '.' . intdiv($n % 10000, 100) . '.' . ($n % 100);
     }
 
     /**
@@ -327,7 +349,7 @@ class Helper
      */
     public static function apnscpGetCustomFields(int|string $productId): array
     {
-        $fields = [];
+        $fields       = [];
         $customFields = DB::table('tblcustomfields')->where('type', 'product')->where('relid', $productId)->get();
 
         foreach ($customFields as $field) {
@@ -345,7 +367,7 @@ class Helper
      * an empty string when no matching record exists.
      *
      * @param int|string $hostingId The tblhosting service ID.
-     * @param int|string $fieldId The tblcustomfields field ID.
+     * @param int|string $fieldId   The tblcustomfields field ID.
      *
      * @return string The row ID, or an empty string if not found.
      */
@@ -363,8 +385,8 @@ class Helper
      * otherwise a new record is inserted.
      *
      * @param int|string $hostingId The tblhosting service ID.
-     * @param int|string $fieldId The tblcustomfields field ID.
-     * @param mixed $value The value to store.
+     * @param int|string $fieldId   The tblcustomfields field ID.
+     * @param mixed      $value     The value to store.
      *
      * @return void
      */
@@ -386,7 +408,7 @@ class Helper
      * no matching record exists.
      *
      * @param int|string $hostingId The tblhosting service ID.
-     * @param int|string $fieldId The tblcustomfields field ID.
+     * @param int|string $fieldId   The tblcustomfields field ID.
      *
      * @return string The stored field value, or an empty string if not found.
      */
