@@ -128,3 +128,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.15] - 2026-04-01
 ### Fixed
 - Removed fake IP used for debugging IP block checking
+
+## [1.0.16] - 2026-06-22
+### Added
+- Sync Accounts — list and import existing apnscp accounts from the admin Servers page.
+- "Login to ApisCP" admin single sign-on into the server control panel.
+- Remote usage stats on the Servers page: ApisCP/platform versions, load, uptime, PHP/MySQL/PostgreSQL versions, and account count.
+
+

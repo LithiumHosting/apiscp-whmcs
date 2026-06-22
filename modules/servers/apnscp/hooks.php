@@ -24,7 +24,8 @@ add_hook('ClientAreaPageProductDetails', 1, function ($vars) {
         return null;
     }
 
-    $ip = apnscp_getPublicIp();
+//    $ip = '2.2.2.2'; // DEBUG OVERRIDE — remove before production
+    $ip = apnscp_getClientIp();
 
     if ($ip === null) {
         return ['apisVars' => ['is_banned' => false, 'jails' => [], 'ip' => null, 'rampart_enabled' => false, 'debug' => ['ip' => null, 'is_banned' => 'No', 'jails_raw' => [], 'error' => 'Could not determine public IP.']]];
@@ -92,39 +93,23 @@ add_hook('ClientAreaPrimarySidebar', 1, function ($sidebar) {
 });
 
 /**
- * Fetch the public outbound IP address of this WHMCS installation.
+ * Fetch the visiting client's IP address from REMOTE_ADDR.
  *
- * Queries a public IP-echo endpoint so the result reflects the real public IP
- * even when WHMCS is behind NAT or a reverse proxy. Falls back to a second
- * endpoint if the first is unreachable, and returns null if both fail.
+ * WHMCS handles trusted-proxy rewriting at the application level
+ * (see the CloudFlare Proxy Check in the admin health checks), so by the time
+ * this hook runs, REMOTE_ADDR already reflects the real visitor.
  *
- * @return string|null The public IPv4 address, or null on failure.
+ * @return string|null The visitor's IP, or null if REMOTE_ADDR is missing/invalid.
  */
-function apnscp_getPublicIp(): ?string
+function apnscp_getClientIp(): ?string
 {
-    $endpoints = [
-        'https://api.ipify.org?format=text',
-        'https://checkip.amazonaws.com',
-    ];
-
-    foreach ($endpoints as $endpoint) {
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 5,
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_FOLLOWLOCATION => true,
-        ]);
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        $ip = $response ? trim($response) : null;
-        if ($ip && filter_var($ip, FILTER_VALIDATE_IP)) {
-            return $ip;
-        }
+    if (empty($_SERVER['REMOTE_ADDR'])) {
+        return null;
     }
 
-    return null;
+    $ip = trim($_SERVER['REMOTE_ADDR']);
+
+    return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : null;
 }
 
 /**
@@ -193,30 +178,29 @@ function apnscp_checkIP(array $params): array
  * WARNING: Remove 'dry-run' from $opts before running in production.
  */
 
-// add_hook('DailyCronJob', 1, function () {
-//
-//     $servers = WHMCS\Product\Server::where('type', 'apnscp')->where('active', 1)->where('disabled', 0)->get();
-//
-//     foreach ($servers as $server) {
-//         $client = null;
-//         try {
-//             ['endpoint' => $endpoint, 'apikey' => $apikey] = Helper::buildEndpoint($server);
-//
-//             $client = ApisConnector::create_client($apikey, $endpoint);
-//
-//             $opts = [
-//                 'since' => '30 days ago',                   // Can be any value
-//                 'match' => 'Deferred Account Cancellation', // Must match what's in the Terminate function
-//                 'dry-run',                                  // Remove for production!
-//                 'force' => true                             // May not be required, but ensure an account is fully deleted...
-//             ];
-//
-//             $client->admin_delete_site(null, $opts);
-//
-//             logModuleCall('apnscp', 'Deferred Cancellation - ' . $server->hostname, Helper::formatXml($client->__getLastRequest()), Helper::formatXml($client->__getLastResponse()));
-//         } catch (\Throwable $e) {
-//             logModuleCall('apnscp', 'Deferred Cancellation - ' . $server->hostname, '', $e->getMessage());
-//         }
-//     }
-//
-// });
+ add_hook('DailyCronJob', 1, function () {
+
+     $servers = WHMCS\Product\Server::where('type', 'apnscp')->where('active', 1)->where('disabled', 0)->get();
+
+     foreach ($servers as $server) {
+         $client = null;
+         try {
+             ['endpoint' => $endpoint, 'apikey' => $apikey] = Helper::buildEndpoint($server);
+
+             $client = ApisConnector::create_client($apikey, $endpoint);
+
+             $opts = [
+                 'since' => '14 days ago',                   // Can be any value
+                 'match' => 'Deferred Account Cancellation', // Must match what's in the Terminate function
+                 'force' => true                             // May not be required, but ensure an account is fully deleted...
+             ];
+
+             $client->admin_delete_site(null, $opts);
+
+             logModuleCall('apnscp', 'Deferred Cancellation - ' . $server->hostname, Helper::formatXml($client->__getLastRequest()), Helper::formatXml($client->__getLastResponse()));
+         } catch (\Throwable $e) {
+             logModuleCall('apnscp', 'Deferred Cancellation - ' . $server->hostname, '', $e->getMessage());
+         }
+     }
+
+ });
